@@ -1,0 +1,698 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
+<meta name="theme-color" content="#2B2C30">
+<meta name="color-scheme" content="dark">
+<title>Meu Treino</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#2B2C30; --surface:#1D1E22; --raised:#37383D; --line:#4A4C53;
+  --ink:#FFFFFF; --mut:#C3C6CE; --dim:#8A8C94;
+  --acao:#2DBBF5; --acao-ink:#08222E;
+  /* cores das anilhas olímpicas: cada objetivo usa a cor de uma anilha */
+  --forca:#E0483E; --hiper:#3D7BEA; --resist:#3FAE5C; --ouro:#F2C230; --branco:#EDEDED;
+  --ease-out:cubic-bezier(.22,1,.36,1);
+  --r-lg:22px; --r-md:14px; --r-sm:10px;
+}
+*{box-sizing:border-box;margin:0}
+html{-webkit-tap-highlight-color:transparent;-webkit-text-size-adjust:100%;overscroll-behavior:none;background:var(--bg)}
+body{font-family:Figtree,system-ui,sans-serif;color:var(--ink);background:var(--bg);min-height:100dvh;font-size:16px;line-height:1.45}
+button{font:inherit;color:inherit;border:0;background:none;cursor:pointer;touch-action:manipulation;user-select:none;-webkit-user-select:none}
+input{font:inherit;font-size:16px;color:var(--ink)}
+.num{font-family:"Bricolage Grotesque",Figtree,sans-serif;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+/* marca d'água: o nome do professor em diagonal, fixo atrás de todas as telas */
+.marca-dagua{position:fixed;inset:-40%;z-index:0;pointer-events:none;user-select:none;-webkit-user-select:none;overflow:hidden;display:flex;flex-direction:column;justify-content:center;gap:26px;transform:rotate(-28deg)}
+.marca-dagua span{display:block;white-space:nowrap;font-family:"Bricolage Grotesque",Figtree,system-ui,sans-serif;font-weight:800;font-size:34px;letter-spacing:.02em;color:var(--ink);opacity:.05}
+.marca-dagua span:nth-child(even){margin-left:-120px}
+.app{position:relative;z-index:1;max-width:440px;margin:0 auto;padding:calc(18px + env(safe-area-inset-top,0px)) 16px calc(32px + env(safe-area-inset-bottom,0px))}
+h1,h2{font-family:"Bricolage Grotesque",Figtree,sans-serif;font-weight:800;letter-spacing:-.025em;line-height:1.05}
+h1{font-size:34px} h2{font-size:24px}
+.sub{color:var(--mut);font-size:15px}
+.topo{display:flex;align-items:center;gap:10px;margin-bottom:22px}
+.voltar{width:44px;height:44px;border-radius:50%;background:var(--surface);display:grid;place-items:center;flex:none}
+.voltar:active{transform:scale(.94)}
+.voltar svg{width:20px;height:20px}
+
+/* botões */
+.btn{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;min-height:58px;border-radius:var(--r-md);font-weight:700;font-size:17px;transition:transform 120ms var(--ease-out),filter 120ms}
+.btn:active{transform:scale(.97)}
+.btn-acao{background:var(--acao);color:var(--acao-ink)}
+.btn-sec{background:var(--surface);color:var(--ink);border:1.5px solid var(--line)}
+.btn-ouro{background:var(--ouro);color:#2A2205;min-height:66px;font-size:19px;box-shadow:0 0 0 0 rgba(242,194,48,.55);animation:pulso 1.8s var(--ease-out) infinite}
+@keyframes pulso{0%{box-shadow:0 0 0 0 rgba(242,194,48,.5)}70%{box-shadow:0 0 0 16px rgba(242,194,48,0)}100%{box-shadow:0 0 0 0 rgba(242,194,48,0)}}
+.rodape{display:grid;justify-items:start;gap:4px;margin-top:8px}
+.link-perigo{color:#F0506E}
+.btn-perigo{background:#E0483E;color:#fff}
+.remover{width:100%;background:var(--surface);border-radius:var(--r-lg);border-left:6px solid #E0483E;padding:18px}
+.remover p{color:var(--mut);font-size:15px;margin:4px 0 14px}
+.dois{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.link{color:var(--acao);font-weight:600;font-size:15px;padding:12px 4px;display:inline-block}
+
+/* chip do objetivo, com o disco da anilha */
+.chip{display:inline-flex;align-items:center;gap:7px;font-size:14px;font-weight:600;color:var(--mut)}
+.disco{width:14px;height:14px;border-radius:50%;background:var(--c);box-shadow:inset 0 0 0 4px rgba(0,0,0,.28);flex:none}
+
+/* início */
+.saudacao{margin-bottom:26px}
+.saudacao h1{margin-bottom:6px}
+.lista{display:grid;gap:12px;margin-bottom:16px}
+.ex{position:relative;text-align:left;background:var(--surface);border-radius:var(--r-lg);padding:18px 18px 18px 26px;overflow:hidden;display:grid;grid-template-columns:1fr auto;gap:4px 12px;transition:transform 140ms var(--ease-out)}
+.ex:active{transform:scale(.98)}
+.ex::before{content:"";position:absolute;left:0;top:0;bottom:0;width:8px;background:var(--c)}
+.ex-nome{font-weight:700;font-size:19px;line-height:1.2}
+.ex-carga{grid-row:span 2;align-self:center;text-align:right}
+.ex-carga b{display:block;font-size:30px;font-weight:800;line-height:1}
+.ex-carga small{color:var(--dim);font-size:12px}
+.ex-pe{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;margin-top:10px;padding-top:12px;border-top:1px solid var(--raised)}
+.nivel{font-size:14px;font-weight:700;color:var(--ouro)}
+.pips{display:flex;gap:5px}
+.pip{width:22px;height:7px;border-radius:4px;background:var(--raised)}
+.pip.on{background:var(--c)}
+.vazio{background:var(--surface);border-radius:var(--r-lg);padding:28px 20px;text-align:center;color:var(--mut);margin-bottom:16px}
+
+/* formulários */
+.campo{margin-bottom:22px}
+.campo label,.rot{display:block;font-weight:600;font-size:15px;margin-bottom:9px}
+.txt{width:100%;min-height:56px;border-radius:var(--r-md);background:var(--surface);border:1.5px solid var(--line);padding:0 16px;font-size:18px}
+.txt:focus{outline:none;border-color:var(--acao)}
+.opcoes{display:grid;gap:10px}
+.opc{display:flex;align-items:center;gap:14px;text-align:left;background:var(--surface);border:2px solid transparent;border-radius:var(--r-md);padding:14px 16px;transition:border-color 140ms,transform 120ms var(--ease-out)}
+.opc:active{transform:scale(.98)}
+.opc[aria-pressed=true]{border-color:var(--c,var(--acao))}
+.opc .disco{width:34px;height:34px;box-shadow:inset 0 0 0 9px rgba(0,0,0,.28)}
+.opc b{display:block;font-size:17px}
+.opc span{color:var(--mut);font-size:14px}
+.seg{display:grid;grid-template-columns:repeat(3,1fr);}
+.seg.seg2{grid-template-columns:repeat(2,1fr)}
+.seg.seg4{grid-template-columns:repeat(4,1fr)}
+.seg{background:var(--surface);border-radius:var(--r-md);padding:4px;gap:4px}
+.seg button{min-height:48px;border-radius:var(--r-sm);font-weight:600;color:var(--mut)}
+.seg button[aria-pressed=true]{background:var(--raised);color:var(--ink)}
+
+/* stepper */
+.stepper{display:grid;grid-template-columns:60px 1fr 60px;align-items:center;background:var(--surface);border-radius:var(--r-md);min-height:68px}
+.stepper button{height:68px;font-size:28px;font-weight:600;color:var(--acao)}
+.stepper button:active{transform:scale(.9)}
+.stepper label{display:flex;align-items:baseline;justify-content:center;gap:3px;min-width:0;cursor:text}
+.stepper input{width:100%;min-width:0;max-width:5.5ch;text-align:center;font-size:32px;font-weight:800;background:none;border:0;border-bottom:2px solid transparent;border-radius:0;padding:2px 0;color:var(--ink);-webkit-appearance:none;appearance:none}
+.stepper input:focus{outline:none;border-bottom-color:var(--acao)}
+.stepper label small{font-size:15px;color:var(--dim);font-weight:600}
+.dica{color:var(--dim);font-size:13px;margin-top:7px}
+
+.revela{background:var(--surface);border-radius:var(--r-lg);padding:22px;text-align:center;margin:6px 0 18px}
+.revela p{color:var(--mut);font-size:15px}
+.revela .num{font-size:64px;font-weight:800;line-height:1;margin:6px 0 2px}
+.revela .num small{font-size:24px;color:var(--mut)}
+
+/* treino: a trilha de séries */
+.cab-treino{margin-bottom:20px}
+.cab-treino h1{font-size:30px;margin:6px 0 14px}
+.status{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.stat{background:var(--surface);border-radius:var(--r-md);padding:12px 14px}
+.stat small{color:var(--dim);font-size:13px;display:block}
+.stat b{font-size:24px;font-weight:800}
+.trilha{position:relative;display:grid;gap:10px;margin:22px 0}
+.trilha::before{content:"";position:absolute;left:21px;top:20px;bottom:20px;width:3px;background:var(--raised);border-radius:2px}
+.serie{position:relative;display:grid;grid-template-columns:45px 1fr;gap:12px;align-items:start}
+.no{position:relative;z-index:1;width:45px;height:45px;border-radius:50%;display:grid;place-items:center;background:var(--bg);border:3px solid var(--raised);font-weight:800;color:var(--dim)}
+.serie.feita .no{background:var(--c);border-color:var(--c);color:#fff}
+.serie.atual .no{border-color:var(--acao);color:var(--acao);background:var(--surface)}
+.serie.feita .no svg{width:20px;height:20px}
+.mini{min-height:45px;display:flex;align-items:center;justify-content:space-between;color:var(--dim);font-weight:600;padding-right:4px}
+.serie.feita .mini{color:var(--mut)}
+.mini .num{font-size:20px;font-weight:800;color:inherit}
+.cartao{background:var(--surface);border-radius:var(--r-lg);padding:18px;border:2px solid var(--acao)}
+.cartao .nome{color:var(--mut);font-weight:600;font-size:15px}
+.linha-peso{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin:6px 0 4px}
+.peso{font-size:72px;font-weight:800;line-height:.95}
+.reps{text-align:right;padding-bottom:4px}
+.reps b{display:block;font-size:40px;font-weight:800;line-height:1}
+.reps span{color:var(--mut);font-size:14px;font-weight:600}
+.peso small{font-size:26px;color:var(--mut);margin-left:4px}
+.cada{color:var(--mut);font-weight:600;font-size:15px;margin-top:2px}
+.alvo{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;margin:12px 0 16px;font-size:17px;font-weight:600}
+.sobra{display:flex;align-items:center;gap:6px;color:var(--mut);font-size:15px;font-weight:500}
+.sobra i{width:10px;height:10px;border-radius:50%;border:2px solid var(--mut)}
+.descanso{display:flex;align-items:center;gap:16px;background:var(--raised);border-radius:var(--r-md);padding:12px 14px;margin-bottom:14px}
+.anel{width:64px;height:64px;flex:none}
+.anel circle{fill:none;stroke-width:6}
+.descanso b{font-size:28px;font-weight:800;display:block;line-height:1}
+.descanso span{color:var(--mut);font-size:14px}
+.descanso button{margin-left:auto;color:var(--acao);font-weight:700;padding:10px 4px}
+
+/* barra com anilhas */
+.barra{margin:12px -6px 6px}
+.barra svg{width:100%;height:auto;display:block}
+.barra p{color:var(--dim);font-size:13px;text-align:center;margin-top:2px}
+.anilha{transform-box:fill-box}
+.entra .etq{animation:aparece 400ms var(--ease-out) both}
+@keyframes aparece{from{opacity:0}to{opacity:1}}
+.entra .anilha.e{animation:entraE 520ms var(--ease-out) both}
+.entra .anilha.d{animation:entraD 520ms var(--ease-out) both}
+@keyframes entraE{from{transform:translateX(-40px);opacity:0}to{transform:none;opacity:1}}
+@keyframes entraD{from{transform:translateX(40px);opacity:0}to{transform:none;opacity:1}}
+
+/* resultado */
+.resultado{background:var(--surface);border-radius:var(--r-lg);padding:22px;margin-top:6px}
+.resultado h2{margin-bottom:8px}
+.resultado p{color:var(--mut);margin-bottom:18px}
+.meta{display:flex;gap:6px;margin:4px 0 8px}
+.meta span{flex:1;height:12px;border-radius:6px;background:var(--raised)}
+.meta span.on{background:var(--c)}
+.meta-leg{display:flex;justify-content:space-between;color:var(--dim);font-size:13px;margin-bottom:18px}
+.subiu{text-align:center}
+.subiu .num{font-size:84px;font-weight:800;line-height:1;margin:6px 0}
+.subiu .num small{font-size:28px;color:var(--mut)}
+.selo{display:inline-block;background:var(--ouro);color:#2A2205;font-weight:800;border-radius:999px;padding:6px 16px;font-size:16px}
+.pop{animation:pop 600ms cubic-bezier(.34,1.56,.64,1) both}
+@keyframes pop{from{transform:scale(.4);opacity:0}to{transform:none;opacity:1}}
+.aviso{border-left:6px solid var(--forca)}
+.grupo{display:grid;gap:10px}
+
+/* palco da série atual */
+.atual-box{display:grid;gap:12px}
+.palco{position:relative;border-radius:26px;overflow:hidden;background:radial-gradient(120% 80% at 62% 18%,#3A3D44 0%,#212227 46%,#141518 100%);box-shadow:inset 0 1px 0 rgba(255,255,255,.06);padding:16px 16px 18px}
+.palco::after{content:"";position:absolute;left:0;right:0;bottom:0;height:42%;background:linear-gradient(180deg,transparent,rgba(0,0,0,.35));pointer-events:none}
+.palco-topo{position:relative;z-index:2;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.etapa{font-weight:700;font-size:15px;color:var(--mut)}
+.reserva{display:flex;align-items:center;gap:7px;background:rgba(255,255,255,.07);border-radius:999px;padding:6px 11px 6px 10px;font-size:13px;font-weight:700;color:var(--mut);white-space:nowrap}
+.reserva b{display:flex;gap:3px}
+.reserva b i{width:6px;height:13px;border-radius:2px;background:var(--acao)}
+.cena{position:relative;z-index:1;margin:8px -6px 4px}
+.cena svg{display:block;width:100%;height:auto;max-height:190px}
+.numeros{position:relative;z-index:2;display:flex;align-items:flex-end;justify-content:space-between;gap:8px}
+.kg{font-size:64px;font-weight:800;line-height:.85}
+.kg small{font-size:22px;color:var(--mut);margin-left:4px;letter-spacing:0}
+.vezes{text-align:right}
+.vezes b{display:block;font-size:38px;font-weight:800;line-height:.9}
+.vezes span{color:var(--dim);font-size:13px;font-weight:600}
+.montar{background:var(--surface);border-radius:20px;padding:14px}
+.montar-cab{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px}
+.montar-cab b{font-size:16px}
+.montar-cab span{color:var(--dim);font-size:13px;font-weight:600}
+.montar > .montar-cab:only-child{margin:0}
+.itens{display:grid;grid-template-columns:repeat(auto-fill,minmax(66px,1fr));gap:8px}
+.item{background:var(--raised);border-radius:14px;padding:9px 4px 8px;text-align:center}
+.item svg{width:36px;height:36px;display:block;margin:0 auto 5px}
+.item b{display:block;font-size:16px;font-weight:800}
+.item span{font-size:12px;color:var(--dim);font-weight:600}
+.barra-item{display:flex;align-items:center;gap:10px;margin-top:8px;padding:9px 12px;border:1.5px dashed var(--line);border-radius:12px;color:var(--mut);font-weight:600;font-size:14px}
+.barra-item svg{width:46px;height:12px;flex:none}
+.caixa{background:var(--surface);border-radius:20px;padding:14px}
+.resultado .cena{margin:6px 0 0}
+/* escolha das anilhas e halteres */
+.pills{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.pill{min-height:40px;padding:0 14px;border-radius:999px;background:var(--surface);border:1.5px solid var(--line);color:var(--mut);font-weight:600;font-size:14px}
+.pill[aria-pressed=true]{border-color:var(--acao);color:var(--ink)}
+.marcas{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.marcas-h{grid-template-columns:repeat(5,1fr)}
+.marca{position:relative;background:var(--surface);border:2px solid transparent;border-radius:14px;padding:10px 4px 8px;text-align:center;transition:border-color 120ms,transform 120ms var(--ease-out);opacity:.55}
+.marca:active{transform:scale(.95)}
+.marca svg{width:34px;height:34px;display:block;margin:0 auto 4px}
+.marca b{font-size:16px;font-weight:800}
+.marca-h{padding:12px 2px}
+.marca.marca-h .ok{top:-6px;right:-6px}
+.marca .ok{position:absolute;top:5px;right:5px;width:18px;height:18px;border-radius:50%;background:var(--acao);color:var(--acao-ink);display:none;place-items:center}
+.marca .ok svg{width:12px;height:12px;margin:0}
+.marca[aria-pressed=true]{border-color:var(--acao);opacity:1}
+.marca[aria-pressed=true] .ok{display:grid}
+.btn:disabled{opacity:.4}
+.andamento{color:var(--acao)}
+.aviso-barra{margin-top:10px;padding:10px 12px;border-radius:12px;background:rgba(242,194,48,.12);color:#F2C230;font-weight:600;font-size:14px;line-height:1.35}
+.aviso-barra.forte{background:rgba(240,80,110,.12);color:#F58AA0}
+.aviso-barra[hidden]{display:none}
+.aviso-treino{margin:0 0 4px}
+.dica-repetidos{margin:-10px 0 18px}
+.marca-b{padding:14px 4px 10px}
+.marca-b svg{width:46px;height:12px;margin:4px auto 8px}
+.link-mini{color:var(--acao);font-weight:600;font-size:inherit;padding:0;text-decoration:underline;text-underline-offset:2px}
+.academia-card{display:flex;align-items:center;gap:12px;width:100%;text-align:left;margin-top:12px;background:var(--surface);border-radius:var(--r-lg);padding:14px 16px;transition:transform 120ms var(--ease-out)}
+.academia-card:active{transform:scale(.98)}
+.academia-ico svg{width:38px;height:38px;display:block}
+.academia-card b{display:block;font-size:16px}
+.academia-card small{color:var(--dim);font-size:13px}
+.academia-card .editar{margin-left:auto;color:var(--acao);font-weight:700;font-size:15px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="marca-dagua" aria-hidden="true"><span>Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato </span><span>Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato </span><span>Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato </span><span>Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato </span><span>Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato </span><span>Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato </span><span>Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato </span><span>Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato </span><span>Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato </span><span>Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato </span><span>Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato </span><span>Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato </span><span>Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato </span><span>Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato </span><span>Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato </span><span>Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato </span><span>Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato </span><span>Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato </span><span>Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato </span><span>Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato </span><span>Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato </span><span>Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato </span><span>Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato </span><span>Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato </span><span>Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato </span><span>Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato Roncolato </span></div>
+<main class="app" id="app"></main>
+<script>
+/* ---------------- protocolo do professor (mesmos números da planilha) ---------------- */
+const OBJ = {
+  forca:{nome:"Força",cor:"var(--forca)",desc:"Poucas repetições com muito peso",esperado:2,gatilho:5,minimo:1,formula:"brzycki",
+    series:[["Aquecer",.65,10,5,120],["Preparar",.75,8,2,180],["Pesada",.83,5,2,240],["Muito pesada",.90,3,1,300],["Até falhar",.95,0,0,0]]},
+  hiper:{nome:"Hipertrofia",cor:"var(--hiper)",desc:"Ganhar músculo",esperado:8,gatilho:11,minimo:6,formula:"brzycki",
+    series:[["Aquecer",.55,15,5,60],["Aquecer",.65,12,3,90],["Pesada",.67,10,2,120],["Muito pesada",.77,8,1,150],["Até falhar",.80,0,0,0]]},
+  resist:{nome:"Resistência",cor:"var(--resist)",desc:"Aguentar mais repetições",esperado:12,gatilho:15,minimo:10,formula:"mayhew",
+    series:[["Aquecer",.55,20,5,45],["Ritmo",.60,17,3,45],["Ritmo",.63,15,2,60],["Pesada",.64,12,3,60],["Até falhar",.67,0,0,0]]},
+};
+/* ---------------- equipamentos que existem nas academias ---------------- */
+// anilhas: [kg, cor, cor clara, diâmetro relativo, espessura]. 10 a 30 kg têm o diâmetro olímpico.
+const ANILHAS = [[30,"#8B1E3F","#B23A5C",1,33],[25,"#C8372D","#E8584D",1,30],[20,"#2E62C9","#4E83EA",1,27],[15,"#E3AE1F","#F7CB4E",1,23],
+  [10,"#2F9147","#4CB566",1,20],[5,"#E8772E","#F79A55",.66,15],[4,"#D94B8C","#F072AB",.6,13],[3,"#8FB02B","#B0D24C",.55,12],
+  [2.5,"#5563D6","#7B88F0",.52,11],[2,"#8E5BD0","#AE80EE",.5,11],[1.25,"#A86B3C","#C98C5B",.44,9],[1,"#2BB3A3","#4FD3C3",.42,9],[0.5,"#E07FA6","#F4A3C3",.36,7]];
+const PRESET_ANILHAS = {
+  comum:   {nome:"Ferro comum", kg:[1,2,3,4,5,10,15,20,25]},
+  olimpica:{nome:"Olímpica", kg:[1.25,2.5,5,10,15,20,25]},
+  todas:   {nome:"Todas", kg:ANILHAS.map(p => p[0])},
+};
+const faixa = (de, ate, passo) => { const r = []; for (let v = de; v <= ate + 1e-9; v += passo) r.push(Math.round(v*100)/100); return r; };
+const HALTERES = [...new Set([...faixa(1,10,1), 2.5, 7.5, ...faixa(12,50,2), ...faixa(12.5,50,2.5)])].sort((a,b) => a-b);
+const PRESET_HALTERES = {
+  misto: {nome:"1 a 10, depois de 2 em 2", kg:[...faixa(1,10,1), ...faixa(12,50,2)]},
+  dois:  {nome:"De 2 em 2", kg:faixa(2,50,2)},
+  meio:  {nome:"De 2,5 em 2,5", kg:faixa(2.5,50,2.5)},
+};
+const fmt = kg => String(Math.round(kg*100)/100).replace(".", ",");
+const placa = kg => ANILHAS.find(p => p[0] === kg);
+
+// combinações possíveis de um lado da barra (em quartos de kg), com o menor número de anilhas
+const _cache = {};
+function ladosPossiveis(lista){
+  const chave = lista.join("|"); if (_cache[chave]) return _cache[chave];
+  const MAX = 1200, un = lista.map(k => Math.round(k*4)).filter(u => u > 0);
+  const n = new Array(MAX+1).fill(Infinity), de = new Array(MAX+1).fill(-1); n[0] = 0;
+  for (let u = 1; u <= MAX; u++) for (const q of un) if (q <= u && n[u-q] + 1 < n[u]) { n[u] = n[u-q] + 1; de[u] = q; }
+  return _cache[chave] = {n, de};
+}
+// peso real que dá para montar perto do pedido; devolve também as anilhas de cada lado.
+// baixo = true (séries a partir de 85%): nunca passa do peso pedido, para não chegar perto da carga máxima por arredondamento
+function montar(ex, alvo, barra = barraBase(ex), baixo = false){
+  if (ex.equip === "halteres") {
+    const lista = (S.academia && S.academia.halteres.length) ? [...S.academia.halteres].sort((a,b) => a-b) : PRESET_HALTERES.misto.kg;
+    let melhor = lista[0];
+    if (baixo) { for (const h of lista) if (h <= alvo + 1e-9) melhor = h; }
+    else for (const h of lista) if (Math.abs(h - alvo) < Math.abs(melhor - alvo) - 1e-9) melhor = h;
+    return {kg: melhor, lado: [], acima: alvo > lista[lista.length-1] + 1e-9, maior: lista[lista.length-1]};
+  }
+  const lista = (S.academia && S.academia.anilhas.length) ? S.academia.anilhas : PRESET_ANILHAS.comum.kg;
+  const {n, de} = ladosPossiveis(lista);
+  const aviso = alvo < barra - 1e-9 ? "pesado" : null;   // série mais leve que a própria barra
+  const meta = Math.max(0, (alvo - barra) / 2 * 4);
+  let u = 0;
+  if (baixo) { for (let v = 0; v <= meta + 1e-9 && v < n.length; v++) if (n[v] < Infinity) u = v; }
+  else for (let v = 0; v < n.length; v++) if (n[v] < Infinity && Math.abs(v - meta) < Math.abs(u - meta) - 1e-9) u = v;
+  const lado = []; let r = u; while (r > 0) { lado.push(de[r]/4); r -= de[r]; }
+  lado.sort((a,b) => b - a);
+  return {kg: barra + u/2, lado, barra, aviso};
+}
+const BARRAS = [6, 10, 15, 20];
+const barrasDaAcademia = () => (S.academia && S.academia.barras && S.academia.barras.length) ? [...S.academia.barras].sort((a,b) => a-b) : BARRAS;
+// se a barra do exercício saiu da academia, usa a mais parecida entre as que existem
+function barraBase(ex){
+  const lista = barrasDaAcademia();
+  if (lista.includes(ex.barra)) return ex.barra;
+  return lista.reduce((m, b) => Math.abs(b - ex.barra) < Math.abs(m - ex.barra) ? b : m, lista[0]);
+}
+const carga = (ex, rm, pct, barra) => montar(ex, rm * pct, barra, pct >= 0.85).kg;
+// uma barra só para o treino inteiro: se a primeira série for mais leve que a barra do exercício,
+// usa desde o começo a barra mais pesada da academia que ainda caiba nela (as outras séries só ganham anilhas)
+function barraDoTreino(ex, rm){
+  if (ex.equip !== "barra") return null;
+  const base = barraBase(ex), menor = rm * Math.min(...OBJ[ex.obj].series.map(s => s[1]));
+  if (menor >= base) return base;
+  const opcoes = [...new Set([...barrasDaAcademia(), base])], leves = opcoes.filter(b => b <= menor);
+  return leves.length ? Math.max(...leves) : Math.min(...opcoes);
+}
+
+const brzycki = (peso, reps) => peso / (1.0278 - 0.0278 * Math.min(reps, 12));
+const mayhewPct = r => 52.2 + 41.9 * Math.exp(-0.055 * r);
+// nova carga máxima a partir do peso que o aluno realmente levantou na última série
+function novaMaxima(ex, reps, barra, rm = ex.rm){
+  const o = OBJ[ex.obj], pct = o.series[4][1], feito = carga(ex, rm, pct, barra);
+  if (o.formula === "mayhew") return Math.round(feito / pct * mayhewPct(o.esperado) / mayhewPct(reps));
+  return Math.round(brzycki(feito, reps));
+}
+
+/* ---------------- estado (fica só neste celular) ---------------- */
+const CHAVE = "meu-treino-v5";
+let S;
+try { S = JSON.parse(localStorage.getItem(CHAVE)); } catch(e) {}
+if (!S) S = { nome:"André", ex:[
+  {id:1, nome:"Levantamento terra", obj:"hiper", equip:"barra", barra:20, rm:173, nivel:2, ultimas:9, hist:[]},
+  {id:2, nome:"Agachamento livre", obj:"forca", equip:"barra", barra:20, rm:140, nivel:1, ultimas:3, hist:[]},
+  {id:3, nome:"Remada com halteres", obj:"resist", equip:"halteres", rm:30, nivel:1, ultimas:null, hist:[]},
+]};
+const salvar = () => { try { localStorage.setItem(CHAVE, JSON.stringify(S)); } catch(e) {} };
+let tela = {v:"inicio"}, sessao = null, timer = null;
+// treino em andamento: cada exercício guarda o seu, só até o fim do dia; ao reabrir, volta no último que estava aberto
+const hoje = () => new Date().toDateString();
+S.sessoes = S.sessoes || {}; delete S.sessao;
+for (const k in S.sessoes) if (S.sessoes[k].dia !== hoje() || !S.ex.some(e => e.id === +k)) delete S.sessoes[k];
+if (S.ultimaSessao && S.sessoes[S.ultimaSessao]) { sessao = {...S.sessoes[S.ultimaSessao]}; tela = {v:"treino", id:sessao.id}; }
+const andamento = id => S.sessoes[id] && !S.sessoes[id].res ? S.sessoes[id] : null;
+const largar = id => { delete S.sessoes[id]; if (sessao && sessao.id === id) sessao = null; };
+const app = document.getElementById("app");
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const fmtTempo = s => `${Math.floor(s/60)}:${String(Math.round(s%60)).padStart(2,"0")}`;
+const icoVoltar = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>`;
+const icoOk = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>`;
+const topo = (titulo) => `<div class="topo"><button class="voltar" data-a="inicio" aria-label="Voltar">${icoVoltar}</button>${titulo||""}</div>`;
+const pips = (ex) => { const o = OBJ[ex.obj], n = o.gatilho - o.esperado + 1, f = ex.ultimas==null ? 0 : Math.max(0, Math.min(ex.ultimas, o.gatilho) - o.esperado + 1);
+  return `<div class="pips" aria-label="${f} de ${n} até subir">${Array.from({length:n},(_,i)=>`<span class="pip ${i<f?"on":""}"></span>`).join("")}</div>`; };
+
+/* ---------------- cena 3D: barra ou halter, na diagonal suave ---------------- */
+// A cena é montada em 3D e projetada: o equipamento corre no eixo X e a câmera fica à frente e à esquerda.
+const YAW = 0.5, PITCH = 0.16, FOCO = 900;
+const sY = Math.sin(YAW), cY = Math.cos(YAW), sP = Math.sin(PITCH);
+const proj = x => { const z = x * sY, p = FOCO / (FOCO + z); return [x * cY * p, -z * sP * p, p]; };
+let _id = 0;
+const DEFS_METAL = (u) => `
+  <linearGradient id="aco${u}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#55585F"/><stop offset=".38" stop-color="#F1F3F6"/><stop offset=".62" stop-color="#B9BCC3"/><stop offset="1" stop-color="#3A3C42"/></linearGradient>
+  <radialGradient id="cromo${u}" cx=".4" cy=".32" r=".85"><stop offset="0" stop-color="#FFFFFF"/><stop offset=".5" stop-color="#B9BCC3"/><stop offset="1" stop-color="#45474D"/></radialGradient>
+  <radialGradient id="chao${u}" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#000" stop-opacity=".65"/><stop offset="1" stop-color="#000" stop-opacity="0"/></radialGradient>`;
+const DEFS_COR = (u, k, base, clara) => `
+  <linearGradient id="lat${u}_${k}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${clara}"/><stop offset=".2" stop-color="${base}"/><stop offset=".6" stop-color="${base}"/><stop offset="1" stop-color="#000" stop-opacity=".92"/></linearGradient>
+  <radialGradient id="face${u}_${k}" cx=".42" cy=".3" r=".95"><stop offset="0" stop-color="${clara}"/><stop offset=".55" stop-color="${base}"/><stop offset="1" stop-color="#0B0B0C"/></radialGradient>`;
+// cilindro no eixo xa→xb; a face que aparece é a de xa
+function cil(xa, xb, r, lat, face, extra){
+  const [Xa, Ya, pa] = proj(xa), [Xb, Yb, pb] = proj(xb);
+  const ra = r * pa, rb = r * pb, rxa = ra * sY, rxb = rb * sY;
+  let s = `<path d="M${Xa} ${Ya-ra} L${Xb} ${Yb-rb} A${rxb} ${rb} 0 0 1 ${Xb} ${Yb+rb} L${Xa} ${Ya+ra} A${rxa} ${ra} 0 0 1 ${Xa} ${Ya-ra} Z" fill="${lat}"/>`;
+  if (face) s += `<ellipse cx="${Xa}" cy="${Ya}" rx="${rxa}" ry="${ra}" fill="${face}"/>`;
+  if (extra) s += extra(Xa, Ya, rxa, ra);
+  return s;
+}
+const faceAnilha = (u, p) => (X, Y, rx, ry) => `
+  <ellipse cx="${X}" cy="${Y}" rx="${rx*.87}" ry="${ry*.87}" fill="none" stroke="#000" stroke-opacity=".3" stroke-width="1.6"/>
+  <ellipse cx="${X}" cy="${Y}" rx="${rx*.94}" ry="${ry*.94}" fill="none" stroke="#fff" stroke-opacity=".13" stroke-width="1"/>
+  <ellipse cx="${X}" cy="${Y}" rx="${rx*.28}" ry="${Math.max(ry*.28, 15)}" fill="url(#cromo${u})"/>
+  <ellipse cx="${X}" cy="${Y}" rx="${9*sY}" ry="9.5" fill="#141416"/>
+  ${p[3] >= .66 ? `<text transform="translate(${X} ${Y - ry*.5}) scale(${sY} 1)" text-anchor="middle" font-family="Bricolage Grotesque" font-weight="800" font-size="${ry*.3}" fill="#fff" fill-opacity=".85">${fmt(p[0])}</text>` : ""}`;
+function moldura(u, defs, corpo, x0, x1, alturaMeia, desc){
+  const [X0, Y0] = proj(x0), [X1, Y1] = proj(x1), [, , pm] = proj(0);
+  const ang = Math.atan2(Y1 - Y0, X1 - X0) * 180 / Math.PI, cx = (X0+X1)/2, cy = (Y0+Y1)/2 + alturaMeia*pm + 12;
+  const sombra = `<ellipse cx="${cx}" cy="${cy}" rx="${Math.hypot(X1-X0, Y1-Y0)/2 + 10}" ry="13" transform="rotate(${ang} ${cx} ${cy})" fill="url(#chao${u})"/>`;
+  const minX = X0 - 24, maxX = X1 + 24, minY = Math.min(Y0, Y1) - alturaMeia * 1.12, maxY = Math.max(Y0, Y1) + alturaMeia * 1.12 + 22;
+  return `<svg viewBox="${minX} ${minY} ${maxX-minX} ${maxY-minY}" role="img" aria-label="${desc}"><defs>${DEFS_METAL(u)}${defs}</defs>${sombra}${corpo}</svg>`;
+}
+
+function cenaBarra(ex, kg, barra){
+  const u = ++_id, m = montar(ex, kg, barra), lado = m.lado, pecas = lado.map(placa);
+  const MEIO = 112, R = 88, ESP = 0.95;
+  let defs = ""; pecas.forEach((p, k) => defs += DEFS_COR(u, k, p[1], p[2]));
+  let x = MEIO; const dir = [], esq = [];
+  pecas.forEach((p, k) => { const t = p[4] * ESP; dir.push([x, x + t, p, k]); x += t + 1.5; });
+  const fimD = x + 30;
+  x = -MEIO; pecas.forEach((p, k) => { const t = p[4] * ESP; esq.push([x - t, x, p, k]); x -= t + 1.5; });
+  const fimE = x - 30;
+  const ultD = dir.length ? dir[dir.length-1][1] : MEIO, ultE = esq.length ? esq[esq.length-1][0] : -MEIO;
+  let c = cil(ultD, fimD, 9, `url(#aco${u})`, "");
+  c += (() => { const [X, Y, p] = proj(fimD); return `<ellipse cx="${X}" cy="${Y}" rx="${9*p*sY}" ry="${9*p}" fill="url(#cromo${u})"/>`; })();
+  for (let i = dir.length - 1; i >= 0; i--) { const [a, b, p, k] = dir[i]; c += cil(a, b, R * p[3], `url(#lat${u}_${k})`, `url(#face${u}_${k})`, faceAnilha(u, p)); }
+  c += cil(MEIO - 12, MEIO, 15, `url(#aco${u})`, `url(#cromo${u})`);
+  c += cil(-MEIO + 12, MEIO - 12, 6, `url(#aco${u})`, "");
+  c += cil(-MEIO, -MEIO + 12, 15, `url(#aco${u})`, `url(#cromo${u})`);
+  esq.forEach(([a, b, p, k]) => { c += cil(a, b, R * p[3], `url(#lat${u}_${k})`, `url(#face${u}_${k})`, faceAnilha(u, p)); });
+  c += cil(fimE, ultE, 9, `url(#aco${u})`, `url(#cromo${u})`);
+  const desc = `Barra de ${m.barra} kg com ${lado.length ? lado.map(fmt).join(" + ") + " kg" : "nenhuma anilha"} de cada lado`;
+  return moldura(u, defs, c, fimE, fimD, R * (pecas.length ? Math.max(...pecas.map(p => p[3])) : .3), desc);
+}
+
+function cenaHalter(kg){
+  const u = ++_id, m = Math.min(kg, 50), rh = 24 + m * 0.42, L = 20 + m * 0.5, PEG = 50;
+  const defs = DEFS_COR(u, "h", "#2A2B30", "#4A4C53");
+  let c = "";
+  c += cil(PEG, PEG + L, rh, `url(#lat${u}_h)`, `url(#face${u}_h)`, (X, Y, rx, ry) =>
+        `<ellipse cx="${X}" cy="${Y}" rx="${rx*.84}" ry="${ry*.84}" fill="none" stroke="#000" stroke-opacity=".35" stroke-width="1.4"/>`);
+  c += cil(-PEG, PEG, 5.5, `url(#aco${u})`, "");
+  c += cil(-PEG - L, -PEG, rh, `url(#lat${u}_h)`, `url(#face${u}_h)`, (X, Y, rx, ry) => `
+        <ellipse cx="${X}" cy="${Y}" rx="${rx*.84}" ry="${ry*.84}" fill="none" stroke="#000" stroke-opacity=".35" stroke-width="1.4"/>
+        <ellipse cx="${X}" cy="${Y}" rx="${rx*.3}" ry="${ry*.3}" fill="url(#cromo${u})"/>
+        <text transform="translate(${X} ${Y + ry*.62}) scale(${sY} 1)" text-anchor="middle" font-family="Bricolage Grotesque" font-weight="800" font-size="${ry*.36}" fill="#fff" fill-opacity=".8">${fmt(kg)}</text>`);
+  return moldura(u, defs, c, -PEG - L, PEG + L, rh, `Halter de ${fmt(kg)} kg`);
+}
+
+// a lista do que pegar, embaixo da cena
+function discoIcone(p){
+  const r = 10 + 9 * p[3];
+  return `<svg viewBox="0 0 40 40" aria-hidden="true"><defs><radialGradient id="ic${String(p[0]).replace(".","_")}" cx=".38" cy=".32" r=".85"><stop offset="0" stop-color="${p[2]}"/><stop offset=".6" stop-color="${p[1]}"/><stop offset="1" stop-color="#000"/></radialGradient></defs>
+    <circle cx="20" cy="20" r="${r}" fill="url(#ic${String(p[0]).replace(".","_")})"/><circle cx="20" cy="20" r="${r*.84}" fill="none" stroke="#000" stroke-opacity=".3" stroke-width="1.5"/>
+    <circle cx="20" cy="20" r="4.5" fill="#D5D7DC"/><circle cx="20" cy="20" r="2.4" fill="#1A1B1F"/></svg>`;
+}
+function montagem(ex, kg, ideal, barra){
+  if (ex.equip === "halteres") { const pedido = montar(ex, ideal == null ? kg : ideal);
+    return `<div class="montar"><div class="montar-cab"><b>Pegue 2 halteres de ${fmt(kg)} kg</b></div>${pedido.acima ? `<div class="aviso-barra">Você já passou do maior halter da sua academia (${fmt(pedido.maior)} kg). Faça com ele e tente mais repetições, ou fale com seu professor sobre fazer o exercício com barra.</div>` : ""}</div>`; }
+  const m = montar(ex, kg, barra), pedido = montar(ex, ideal == null ? kg : ideal, barra), lado = m.lado, cont = {};
+  const aviso = pedido.aviso === "pesado" ? `<div class="aviso-barra forte">O peso ideal desta série é ${fmt(Math.round(ideal*10)/10)} kg, menos que a barra mais leve da sua academia (${m.barra} kg). Faça só com a barra, bem devagar, ou fale com seu professor.</div>` : "";
+  lado.forEach(k => cont[k] = (cont[k] || 0) + 1);
+  const itens = Object.keys(cont).map(Number).sort((a,b) => b-a).map(k => `<div class="item">${discoIcone(placa(k))}<b class="num">${fmt(k)} kg</b><span>${cont[k]}× por lado</span></div>`).join("");
+  return `<div class="montar"><div class="montar-cab"><b>${lado.length ? "Monte cada lado" : "Só a barra"}</b><span>${lado.length ? "igual nos dois" : "sem anilhas"}</span></div>
+    ${lado.length ? `<div class="itens">${itens}</div>` : ""}
+    <div class="barra-item"><svg viewBox="0 0 46 12" aria-hidden="true"><rect x="0" y="4" width="46" height="4" rx="2" fill="#C3C6CE"/><rect x="10" y="1" width="3" height="10" rx="1" fill="#E4E6EA"/><rect x="33" y="1" width="3" height="10" rx="1" fill="#E4E6EA"/></svg>Barra de ${m.barra} kg</div>${aviso}</div>`;
+}
+
+/* ---------------- telas ---------------- */
+function vInicio(){
+  const cards = S.ex.map(ex => { const o = OBJ[ex.obj];
+    return `<button class="ex" style="--c:${o.cor}" data-a="treino" data-id="${ex.id}">
+      <span class="ex-nome">${esc(ex.nome)}</span>
+      <span class="ex-carga num"><b>${ex.rm}</b><small>${ex.equip==="halteres" ? "kg máx. por halter" : "kg máximo"}</small></span>
+      <span class="chip"><i class="disco" style="--c:${o.cor}"></i>${o.nome}</span>
+      <span class="ex-pe"><span class="nivel">${andamento(ex.id) ? `<span class="andamento">Continuar da série ${Math.min(andamento(ex.id).feitas + 1, 5)}</span>` : `Nível ${ex.nivel}`}</span>${pips(ex)}</span></button>`; }).join("");
+  return `<header class="saudacao"><h1>Bora treinar, ${esc(S.nome)}</h1><p class="sub">Escolha o exercício de hoje. Cada barrinha cheia te deixa mais perto de subir de nível.</p></header>
+    <div class="lista">${cards || `<div class="vazio">Você ainda não tem exercícios. Adicione o primeiro para começar.</div>`}</div>
+    <button class="btn btn-sec" data-a="novo">Adicionar exercício</button>
+    <button class="academia-card" data-a="academia"><span class="academia-ico">${discoIcone(ANILHAS[1])}</span>
+      <span><b>Sua academia</b><small>${barrasDaAcademia().length} barras, ${S.academia.anilhas.length} tipos de anilha e ${S.academia.halteres.length} halteres</small></span><span class="editar">Editar</span></button>`;
+}
+
+function gradeAnilhas(d){
+  const igual = (a, b) => a.length === b.length && a.every(v => b.includes(v));
+  const pres = Object.entries(PRESET_ANILHAS).map(([k,pr]) => `<button class="pill" aria-pressed="${igual(d.anilhas, pr.kg)}" data-a="preset-anilhas" data-k="${k}">${pr.nome}</button>`).join("");
+  const marcas = ANILHAS.map(pl => `<button class="marca" aria-pressed="${d.anilhas.includes(pl[0])}" data-a="tog-anilha" data-k="${pl[0]}">${discoIcone(pl)}<b class="num">${fmt(pl[0])}</b><i class="ok">${icoOk}</i></button>`).join("");
+  return `<div class="pills">${pres}</div><div class="marcas">${marcas}</div>`;
+}
+function gradeHalteres(d){
+  const igual = (a, b) => a.length === b.length && a.every(v => b.includes(v));
+  const pres = Object.entries(PRESET_HALTERES).map(([k,pr]) => `<button class="pill" aria-pressed="${igual(d.halteres, pr.kg)}" data-a="preset-halteres" data-k="${k}">${pr.nome}</button>`).join("");
+  const marcas = HALTERES.map(h => `<button class="marca marca-h" aria-pressed="${d.halteres.includes(h)}" data-a="tog-halter" data-k="${h}"><b class="num">${fmt(h)}</b><i class="ok">${icoOk}</i></button>`).join("");
+  return `<div class="pills">${pres}</div><div class="marcas marcas-h">${marcas}</div>`;
+}
+// a academia é configurada uma vez e vale para todos os exercícios
+function vAcademia(){
+  const d = tela.d, primeira = !S.academia;
+  return `${primeira ? "" : topo()}<h1 style="margin-bottom:8px">${primeira ? "Monte sua academia" : "Sua academia"}</h1>
+    <p class="sub" style="margin-bottom:24px">${primeira ? "Antes de começar, marque o que existe na sua academia. Você faz isso uma vez só e pode mudar quando quiser." : "Os pesos de todos os exercícios usam só o que está marcado aqui."}</p>
+    <div class="campo"><span class="rot">Barras</span><div class="marcas">${BARRAS.map(b => `<button class="marca marca-b" aria-pressed="${d.barras.includes(b)}" data-a="tog-barra" data-k="${b}"><svg viewBox="0 0 46 12" aria-hidden="true"><rect x="0" y="4" width="46" height="4" rx="2" fill="#C3C6CE"/><rect x="10" y="1" width="3" height="10" rx="1" fill="#E4E6EA"/><rect x="33" y="1" width="3" height="10" rx="1" fill="#E4E6EA"/></svg><b class="num">${b} kg</b><i class="ok">${icoOk}</i></button>`).join("")}</div>
+      <p class="dica">Quando o peso de uma série ficar abaixo da barra do exercício, a página sugere uma barra mais leve entre as marcadas.</p></div>
+    <div class="campo"><span class="rot">Anilhas</span>${gradeAnilhas(d)}<p class="dica">Marque todas que você encontra na sua academia. Os pesos do treino vão usar só essas.</p>
+      ${d.anilhas.length && !d.anilhas.some(k => k <= 2.5) ? `<div class="aviso-barra">Sem anilhas de até 2,5 kg, o peso sobe de pouco em pouco e algumas séries podem ficar com o mesmo peso.</div>` : ""}</div>
+    <div class="campo"><span class="rot">Halteres</span>${gradeHalteres(d)}<p class="dica">Peso de cada halter, em kg. Marque todos que existem na sua academia.</p></div>
+    <button class="btn btn-acao" data-a="salvar-academia">${primeira ? "Salvar e começar" : "Salvar academia"}</button>`;
+}
+function vNovo(){
+  const d = tela.d, editar = !!tela.editar;
+  const opc = Object.entries(OBJ).map(([k,o]) => `<button class="opc" style="--c:${o.cor}" aria-pressed="${d.obj===k}" data-a="set-obj" data-k="${k}"><i class="disco" style="--c:${o.cor}"></i><div><b>${o.nome}</b><span>${o.desc}</span></div></button>`).join("");
+  const eq = [["barra","Barra"],["halteres","Halteres"]].map(([k,n]) => `<button aria-pressed="${d.equip===k}" data-a="set-equip" data-k="${k}">${n}</button>`).join("");
+  if (!barrasDaAcademia().includes(d.barra)) d.barra = Math.max(...barrasDaAcademia());
+  const pb = barrasDaAcademia().map(n => `<button aria-pressed="${d.barra===n}" data-a="set-barra" data-k="${n}">${n} kg</button>`).join("");
+  const origem = `<p class="dica">${d.equip === "barra" ? "As anilhas vêm da" : "Os halteres vêm da"} <button class="link-mini" data-a="academia">sua academia</button>.</p>`;
+  return `${topo()}<h1 style="margin-bottom:22px">${editar ? "Equipamento" : "Novo exercício"}</h1>
+    ${editar ? "" : `<div class="campo"><label for="nome">Nome do exercício</label><input id="nome" class="txt" value="${esc(d.nome)}" placeholder="Ex.: Supino reto" autocomplete="off" enterkeyhint="done"></div>
+    <div class="campo"><span class="rot">Qual é o objetivo?</span><div class="opcoes">${opc}</div></div>`}
+    <div class="campo"><span class="rot">Com o que você faz?</span><div class="seg seg2">${eq}</div>${d.equip === "halteres" ? origem : ""}</div>
+    ${d.equip === "barra" ? `<div class="campo"><span class="rot">Qual é o peso da barra?</span><div class="seg" style="grid-template-columns:repeat(${barrasDaAcademia().length},1fr)">${pb}</div>${origem}</div>` : ""}
+    <button class="btn btn-acao" data-a="${editar ? "salvar-equip" : "criar"}">${editar ? "Salvar" : "Continuar"}</button>`;
+}
+
+function stepper(campo, valor, unidade, dica){
+  // dá para tocar no número e digitar, além de usar o − e o +
+  const modo = campo === "peso" ? "decimal" : "numeric";
+  return `<div class="stepper"><button data-a="menos" data-k="${campo}" aria-label="Diminuir">−</button>
+    <label><input class="num" data-campo="${campo}" type="text" inputmode="${modo}" enterkeyhint="done" autocomplete="off" value="${fmt(valor)}" aria-label="${campo}">${unidade?`<small>${unidade}</small>`:""}</label>
+    <button data-a="mais" data-k="${campo}" aria-label="Aumentar">+</button></div>${dica?`<p class="dica">${dica}</p>`:""}`;
+}
+function vDescobrir(){
+  const d = tela.d, ex = S.ex.find(e=>e.id===tela.id);
+  const rm = Math.round(d.peso / (1.0278 - 0.0278 * Math.min(d.reps + d.sobra, 12)));
+  const abaixo = ex.equip === "barra" && d.peso < barraBase(ex);
+  return `${topo()}<h1 style="margin-bottom:8px">Qual foi sua melhor série de ${esc(ex.nome.toLowerCase())}?</h1>
+    <p class="sub" style="margin-bottom:24px">Me diga o peso e as repetições da melhor série que você já fez nesse exercício. A planilha calcula sua carga máxima a partir dela.</p>
+    <div class="campo"><span class="rot">${ex.equip==="halteres" ? "Peso de cada halter" : "Peso total que você usou"}</span>${stepper("peso", d.peso, "kg", ex.equip==="barra" ? "Some a barra e as anilhas." : "")}
+      <div class="aviso-barra forte" id="aviso-peso" ${abaixo ? "" : "hidden"}>O peso total inclui a barra de ${barraBase(ex)} kg, então não pode ser menor que ${barraBase(ex)} kg. Se você usou uma barra mais leve, troque em <button class="link-mini" data-a="editar-equip">Mudar barra ou halteres</button>.</div></div>
+    <div class="campo"><span class="rot">Quantas repetições fez</span>${stepper("reps", d.reps)}</div>
+    <div class="campo"><span class="rot">Reps reserva</span>${stepper("sobra", d.sobra, "", "Quantas repetições ainda sairiam quando você parou. Coloque 0 se não saía mais nenhuma.")}</div>
+    <div class="revela"><p>Sua carga máxima</p><div class="num" id="rm-valor">${rm}<small> kg</small></div><p>É o peso que você levantaria uma vez só. Os pesos do treino saem dele.</p></div>
+    <button class="btn btn-acao" id="btn-rm" data-a="salvar-max" data-rm="${rm}" ${abaixo ? "disabled" : ""}>Ir treinar!</button>`;
+}
+
+function vTreino(){
+  const ex = S.ex.find(e=>e.id===tela.id), o = OBJ[ex.obj];
+  // os pesos do treino de hoje ficam fixos, mesmo que a carga máxima suba no fim
+  if (!sessao || sessao.id !== ex.id) sessao = andamento(ex.id) ? {...andamento(ex.id)} : {id:ex.id, rm:ex.rm, barra:barraDoTreino(ex, ex.rm), feitas:0, reps:o.esperado, fim:null, res:null};
+  // a barra do treino só muda se ela saiu da academia
+  if (ex.equip === "barra" && (sessao.barra == null || !barrasDaAcademia().includes(sessao.barra))) sessao.barra = barraDoTreino(ex, sessao.rm);
+  const pesos = o.series.map(s => carga(ex, sessao.rm, s[1], sessao.barra));
+  const repetidos = pesos.some((k, i) => i > 0 && k === pesos[i-1]);
+  const linhas = o.series.map((s,i) => {
+    const kg = carga(ex, sessao.rm, s[1], sessao.barra);
+    if (i < sessao.feitas) return `<div class="serie feita" style="--c:${o.cor}"><div class="no">${icoOk}</div><div class="mini"><span>${s[0]}</span><span class="num">${fmt(kg)} kg × ${s[2]||sessao.reps}</span></div></div>`;
+    if (i > sessao.feitas || sessao.res) return `<div class="serie"><div class="no">${i+1}</div><div class="mini"><span>${s[0]}</span><span class="num">${fmt(kg)} kg</span></div></div>`;
+    return `<div class="serie atual"><div class="no">${i+1}</div>${cartaoSerie(ex, o, s, i, kg)}</div>`;
+  }).join("");
+  return `${topo(`<span class="chip"><i class="disco" style="--c:${o.cor}"></i>${o.nome}</span>`)}
+    <div class="cab-treino"><h1>${esc(ex.nome)}</h1><div class="status">
+      <div class="stat"><small>${ex.equip==="halteres" ? "Carga máx. por halter" : "Carga máxima"}</small><b class="num">${ex.rm} kg</b></div>
+      <div class="stat"><small>Nível</small><b class="num" style="color:var(--ouro)">${ex.nivel}</b></div></div></div>
+    ${ex.equip === "barra" && sessao.barra !== barraBase(ex) && !sessao.res ? `<div class="aviso-barra aviso-treino">${sessao.barra < barraBase(ex)
+      ? `Hoje use a <b>barra de ${sessao.barra} kg</b> do começo ao fim. Com a sua carga máxima, a primeira série fica mais leve que a barra de ${barraBase(ex)} kg.`
+      : `Até a barra mais leve da sua academia (${sessao.barra} kg) passa do peso da primeira série. Use ela no treino todo.`}</div>` : ""}
+    <div class="trilha">${linhas}</div>
+    ${repetidos && !sessao.res ? `<p class="dica dica-repetidos">Algumas séries ficaram com o mesmo peso porque faltam ${ex.equip === "barra" ? "anilhas pequenas" : "halteres intermediários"} na sua academia. Faça as repetições de cada série normalmente.</p>` : ""}
+    ${sessao.res ? vResultado(ex, o) : ""}
+    <div class="rodape"><button class="link" data-a="descobrir" data-id="${ex.id}">Refazer o cálculo da carga máxima</button>
+    <button class="link" data-a="editar-equip">Mudar barra ou halteres</button>
+    ${tela.remover ? `<div class="remover"><b>Remover ${esc(ex.nome)}?</b><p>O nível e o histórico deste exercício também somem.</p>
+      <div class="dois"><button class="btn btn-sec" data-a="nao-remover">Cancelar</button><button class="btn btn-perigo" data-a="remover">Remover</button></div></div>`
+      : `<button class="link link-perigo" data-a="pedir-remover">Remover exercício</button>`}</div>`;
+}
+
+function cartaoSerie(ex, o, s, i, kg){
+  const ultima = i === 4, halter = ex.equip === "halteres";
+  const reserva = s[3] ? `<span class="reserva">Reserva <b>${Array.from({length:s[3]},()=>`<i class="on"></i>`).join("")}</b>${s[3]} ${s[3]===1 ? "rep" : "reps"}</span>`
+                       : `<span class="reserva">Até não sair mais</span>`;
+  let acao;
+  if (sessao.fim) {
+    const falta = Math.max(0, (sessao.fim - Date.now())/1000), total = o.series[i-1][4];
+    const C = 2*Math.PI*26, frac = total ? falta/total : 0;
+    acao = `<div class="descanso"><svg class="anel" viewBox="0 0 64 64"><circle cx="32" cy="32" r="26" stroke="var(--line)"/><circle id="anel" cx="32" cy="32" r="26" stroke="var(--acao)" stroke-linecap="round" stroke-dasharray="${C}" stroke-dashoffset="${C*(1-frac)}" transform="rotate(-90 32 32)"/></svg>
+      <div><b class="num" id="relogio">${fmtTempo(falta)}</b><span>Descanse antes desta série</span></div><button data-a="pular">Pular</button></div>`;
+  } else if (ultima) {
+    acao = `<div class="caixa"><p class="rot">Quantas repetições você fez?</p>${stepper("feitas", sessao.reps)}<div style="height:12px"></div><button class="btn btn-acao" data-a="registrar">Registrar repetições</button></div>`;
+  } else acao = `<button class="btn btn-acao" data-a="feita">Série feita</button>`;
+  return `<div class="atual-box"><section class="palco">
+      <div class="palco-topo"><span class="etapa">${s[0]}</span>${reserva}</div>
+      <div class="cena">${halter ? cenaHalter(kg) : cenaBarra(ex, kg, sessao.barra)}</div>
+      <div class="numeros"><div class="kg num">${fmt(kg)}<small>kg${halter ? " cada" : ""}</small></div>
+        <div class="vezes"><b class="num">${ultima ? "Máx." : "×" + s[2]}</b><span>repetições</span></div></div>
+    </section>${montagem(ex, kg, sessao.rm * s[1], sessao.barra)}${acao}</div>`;
+}
+
+function vResultado(ex, o){
+  const r = sessao.res, n = o.gatilho - o.esperado + 1, f = Math.max(0, Math.min(r.reps, o.gatilho) - o.esperado + 1);
+  const barraMeta = `<div class="meta" style="--c:${o.cor}">${Array.from({length:n},(_,i)=>`<span class="${i<f?"on":""}"></span>`).join("")}</div><div class="meta-leg"><span>${o.esperado} reps</span><span>Meta: ${o.gatilho} reps</span></div>`;
+  if (r.subiu) return `<div class="resultado subiu"><span class="selo pop">Nível ${ex.nivel}</span>
+      <div class="num" id="contador">${ex.rm}<small> kg</small></div><p>Sua nova carga máxima. A última série agora é com ${fmt(carga(ex, ex.rm, o.series[4][1], barraDoTreino(ex, ex.rm)))} kg.</p>
+      <div class="cena">${ex.equip==="barra" ? cenaBarra(ex, carga(ex, ex.rm, o.series[4][1], barraDoTreino(ex, ex.rm)), barraDoTreino(ex, ex.rm)) : cenaHalter(carga(ex, ex.rm, o.series[4][1], barraDoTreino(ex, ex.rm)))}</div><div style="height:14px"></div><button class="btn btn-acao" data-a="inicio">Voltar aos exercícios</button></div>`;
+  if (r.reps >= o.gatilho) {
+    // a carga máxima nunca cai pelo botão; se o peso possível não deixa subir, explica em vez de comemorar
+    if (r.nova <= ex.rm) return `<div class="resultado"><h2>Meta batida!</h2>${barraMeta}<p>Você fez ${r.reps} repetições, mas a última série saiu com ${fmt(r.feito)} kg, abaixo do ideal, por causa dos pesos da sua academia. Por isso sua carga máxima continua em ${ex.rm} kg. Peça ao professor para incluir ${ex.equip === "barra" ? "anilhas menores" : "halteres intermediários"}.</p><button class="btn btn-acao" data-a="concluir">Concluir treino</button></div>`;
+    const prox = carga(ex, r.nova, o.series[4][1], barraDoTreino(ex, r.nova));
+    return `<div class="resultado"><h2>Meta batida!</h2>${barraMeta}<p>Você fez ${r.reps} repetições. Sua carga máxima pode subir de ${ex.rm} para ${r.nova} kg.${prox <= r.feito ? ` A última série continua com ${fmt(r.feito)} kg, porque é o peso mais próximo que dá para montar na sua academia. As outras séries sobem.` : ""}</p><button class="btn btn-ouro" data-a="atualizar">Atualizar carga</button></div>`;
+  }
+  if (r.reps < o.minimo) {
+    // segunda vez seguida abaixo do mínimo: oferece baixar a carga máxima pela série que ele conseguiu fazer
+    if ((ex.abaixo || 0) >= 1 && r.nova < ex.rm) return `<div class="resultado aviso"><h2>Pesou demais de novo</h2>${barraMeta}<p>É a segunda vez seguida abaixo de ${o.minimo} ${o.minimo === 1 ? "repetição" : "repetições"}. Pelo que você fez hoje, sua carga máxima está perto de ${r.nova} kg. Ajustar deixa os próximos treinos no peso certo para você.</p>
+      <div class="dois"><button class="btn btn-sec" data-a="concluir">Manter</button><button class="btn btn-acao" data-a="ajustar">Ajustar carga</button></div></div>`;
+    return `<div class="resultado aviso"><h2>Pesou demais hoje</h2>${barraMeta}<p>No próximo treino, use os mesmos pesos e tente de novo. Se acontecer outra vez, a página vai sugerir ajustar a carga.</p><button class="btn btn-sec" data-a="concluir">Concluir treino</button></div>`;
+  }
+  const falta = o.gatilho - r.reps;
+  return `<div class="resultado"><h2>${falta===1 ? "Falta 1 repetição" : `Faltam ${falta} repetições`}</h2>${barraMeta}<p>Para subir de nível. No próximo treino, use os mesmos pesos e tente fazer mais uma.</p><button class="btn btn-acao" data-a="concluir">Concluir treino</button></div>`;
+}
+
+/* ---------------- render e ações ---------------- */
+function render(){
+  clearInterval(timer);
+  // só guarda depois da primeira série feita; abrir e voltar não deixa "andamento"
+  if (sessao) { if (sessao.res || !sessao.feitas) delete S.sessoes[sessao.id]; else S.sessoes[sessao.id] = {...sessao, dia: hoje()}; }
+  S.ultimaSessao = sessao && !sessao.res && sessao.feitas && tela.v === "treino" ? sessao.id : null; salvar();
+  if (!S.academia && tela.v !== "academia") tela = {v:"academia", d:{barras:[...BARRAS], anilhas:[...PRESET_ANILHAS.comum.kg], halteres:[...PRESET_HALTERES.misto.kg]}};
+  app.innerHTML = tela.v==="academia" ? vAcademia() : tela.v==="inicio" ? vInicio() : tela.v==="novo" ? vNovo() : tela.v==="descobrir" ? vDescobrir() : vTreino();
+  if (tela.v==="treino" && sessao && sessao.fim) timer = setInterval(tique, 250);
+}
+function tique(){
+  const ex = S.ex.find(e=>e.id===tela.id), o = OBJ[ex.obj], total = o.series[sessao.feitas-1][4];
+  const falta = Math.max(0, (sessao.fim - Date.now())/1000);
+  const rel = document.getElementById("relogio"), anel = document.getElementById("anel");
+  if (rel) rel.textContent = fmtTempo(falta);
+  if (anel) { const C = 2*Math.PI*26; anel.style.strokeDashoffset = C*(1 - falta/total); }
+  if (falta <= 0) { sessao.fim = null; try { navigator.vibrate && navigator.vibrate([120,60,120]); } catch(e) {} render(); }
+}
+function contar(de, ate){
+  const el = document.getElementById("contador"); if (!el || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const t0 = performance.now(), dur = 900;
+  const passo = t => { const k = Math.min(1,(t-t0)/dur), e = 1 - Math.pow(1-k,3);
+    el.innerHTML = `${Math.round(de + (ate-de)*e)}<small> kg</small>`; if (k < 1) requestAnimationFrame(passo); };
+  requestAnimationFrame(passo);
+}
+// peso que aparece de saída na melhor série: 75% da carga atual (ou 40 kg), nunca menos que a barra
+const pesoInicial = ex => { const k = ex.rm ? Math.round(ex.rm * 0.75 / 2) * 2 : (ex.equip === "halteres" ? 10 : 40); return ex.equip === "barra" ? Math.max(k, barraBase(ex)) : k; };
+const LIM = {peso:[1,400,2], reps:[1,12,1], sobra:[0,5,1], feitas:[0,40,1]};
+// números digitados: atualizam a conta na hora e são ajustados aos limites quando o aluno sai do campo
+const alvoCampo = k => k === "feitas" ? [sessao, "reps"] : [tela.d, k];
+const lerNumero = t => { const v = parseFloat(String(t).replace(",", ".")); return isFinite(v) ? v : null; };
+app.addEventListener("input", ev => {
+  const el = ev.target.closest("input[data-campo]"); if (!el) return;
+  const v = lerNumero(el.value); if (v == null) return;
+  const [obj, campo] = alvoCampo(el.dataset.campo), [mn, mx] = LIM[el.dataset.campo];
+  if (v < mn || v > mx) return;
+  obj[campo] = el.dataset.campo === "peso" ? v : Math.round(v);
+  if (tela.v === "descobrir") { const d = tela.d, rm = Math.round(d.peso / (1.0278 - 0.0278 * Math.min(d.reps + d.sobra, 12)));
+    const out = document.getElementById("rm-valor"), btn = document.getElementById("btn-rm");
+    if (out) out.innerHTML = `${rm}<small> kg</small>`; if (btn) btn.dataset.rm = rm;
+    const ex = S.ex.find(e => e.id === tela.id), abaixo = ex.equip === "barra" && d.peso < barraBase(ex), av = document.getElementById("aviso-peso");
+    if (btn) btn.disabled = abaixo; if (av) av.hidden = !abaixo; }
+});
+app.addEventListener("change", ev => {
+  const el = ev.target.closest("input[data-campo]"); if (!el) return;
+  const [obj, campo] = alvoCampo(el.dataset.campo), [mn, mx] = LIM[el.dataset.campo], v = lerNumero(el.value);
+  if (v != null) obj[campo] = Math.min(mx, Math.max(mn, el.dataset.campo === "peso" ? v : Math.round(v)));
+  const y = window.scrollY; render(); window.scrollTo(0, y);
+});
+app.addEventListener("focusin", ev => { const el = ev.target.closest("input[data-campo]"); if (el) el.select(); });
+app.addEventListener("click", ev => {
+  const b = ev.target.closest("[data-a]"); if (!b) return;
+  const a = b.dataset.a;
+  if (a==="inicio") { tela = {v:"inicio"}; if (sessao && sessao.res) sessao = null; }
+  else if (a==="novo") tela = {v:"novo", d:{nome:"", obj:"hiper", equip:"barra", barra:20}};
+  else if (a==="academia") { const n = document.getElementById("nome"); if (n && tela.d) tela.d.nome = n.value; const volta = tela.v === "novo" ? tela : null; tela = {v:"academia", volta, d:{barras:barrasDaAcademia(), anilhas:[...S.academia.anilhas], halteres:[...S.academia.halteres]}}; }
+  else if (a==="salvar-academia") { S.academia = {barras:tela.d.barras.length ? tela.d.barras : [...BARRAS], anilhas:tela.d.anilhas, halteres:tela.d.halteres}; salvar(); tela = tela.volta || {v:"inicio"}; }
+  else if (a==="tog-barra") { const v = +b.dataset.k; tela.d.barras = tela.d.barras.includes(v) ? tela.d.barras.filter(x => x !== v) : [...tela.d.barras, v]; }
+  else if (["tog-anilha","tog-halter","preset-anilhas","preset-halteres"].includes(a)) { const n = document.getElementById("nome"); if (n) tela.d.nome = n.value;
+    const k = a.endsWith("anilha") || a==="preset-anilhas" ? "anilhas" : "halteres";
+    if (a.startsWith("preset")) tela.d[k] = [...(k==="anilhas" ? PRESET_ANILHAS : PRESET_HALTERES)[b.dataset.k].kg];
+    else { const v = +b.dataset.k; tela.d[k] = tela.d[k].includes(v) ? tela.d[k].filter(x => x !== v) : [...tela.d[k], v]; } }
+  else if (a==="editar-equip") { const ex = S.ex.find(e=>e.id===tela.id);
+    tela = {v:"novo", editar:ex.id, d:{nome:ex.nome, obj:ex.obj, equip:ex.equip, barra:ex.barra||20}}; }
+  else if (a==="salvar-equip") { const ex = S.ex.find(e=>e.id===tela.editar), d = tela.d;
+    Object.assign(ex, {equip:d.equip, barra:d.barra}); largar(ex.id); salvar(); tela = ex.rm ? {v:"treino", id:ex.id} : {v:"descobrir", id:ex.id, d:{peso:pesoInicial(ex), reps:8, sobra:1}}; }
+  else if (a==="set-obj" || a==="set-equip" || a==="set-barra") { const n = document.getElementById("nome"); if (n) tela.d.nome = n.value;
+    if (a==="set-barra") tela.d.barra = +b.dataset.k; else tela.d[a==="set-obj"?"obj":"equip"] = b.dataset.k; }
+  else if (a==="criar") { const nome = document.getElementById("nome").value.trim() || "Meu exercício";
+    const id = Date.now(); S.ex.push({id, nome, obj:tela.d.obj, equip:tela.d.equip, barra:tela.d.barra, rm:0, nivel:1, ultimas:null, hist:[]}); salvar();
+    tela = {v:"descobrir", id, d:{peso:pesoInicial(S.ex.find(e => e.id === id)), reps:8, sobra:1}}; }
+  else if (a==="treino") { const ex = S.ex.find(e=>e.id===+b.dataset.id); tela = ex.rm ? {v:"treino", id:ex.id} : {v:"descobrir", id:ex.id, d:{peso:pesoInicial(ex),reps:8,sobra:1}}; }
+  else if (a==="descobrir") { const ex = S.ex.find(e=>e.id===+b.dataset.id); tela = {v:"descobrir", id:ex.id, d:{peso:pesoInicial(ex), reps:8, sobra:1}}; }
+  else if (a==="mais" || a==="menos") { const k = b.dataset.k, [mn,mx,st] = LIM[k], alvo = k==="feitas" ? sessao : tela.d, campo = k==="feitas" ? "reps" : k;
+    alvo[campo] = Math.min(mx, Math.max(mn, alvo[campo] + (a==="mais"?st:-st))); }
+  else if (a==="salvar-max") { const ex = S.ex.find(e=>e.id===tela.id); ex.rm = +b.dataset.rm; ex.abaixo = 0; largar(ex.id); salvar(); tela = {v:"treino", id:ex.id}; }
+  else if (a==="feita") { const o = OBJ[S.ex.find(e=>e.id===tela.id).obj]; sessao.feitas++; sessao.fim = Date.now() + o.series[sessao.feitas-1][4]*1000; }
+  else if (a==="pular") sessao.fim = null;
+  else if (a==="pedir-remover") { tela.remover = true; render(); document.querySelector(".remover").scrollIntoView({block:"center", behavior:"smooth"}); return; }
+  else if (a==="nao-remover") tela.remover = false;
+  else if (a==="remover") { largar(tela.id); S.ex = S.ex.filter(e => e.id !== tela.id); salvar(); tela = {v:"inicio"}; }
+  else if (a==="registrar") { const ex = S.ex.find(e=>e.id===tela.id); const pct = OBJ[ex.obj].series[4][1];
+    sessao.res = {reps:sessao.reps, nova:novaMaxima(ex, sessao.reps, sessao.barra, sessao.rm), feito:carga(ex, sessao.rm, pct, sessao.barra)}; sessao.feitas = 5; }
+  else if (a==="concluir" || a==="atualizar" || a==="ajustar") {
+    const ex = S.ex.find(e=>e.id===tela.id), o = OBJ[ex.obj], r = sessao.res, antes = ex.rm;
+    ex.ultimas = r.reps; ex.hist.push({data:new Date().toISOString().slice(0,10), reps:r.reps, rm:antes});
+    ex.abaixo = r.reps < o.minimo && a === "concluir" ? (ex.abaixo || 0) + 1 : 0;
+    if (a==="atualizar") { ex.rm = Math.max(r.nova, ex.rm); ex.nivel++; ex.ultimas = null; r.subiu = true; salvar(); render(); contar(antes, ex.rm); return; }
+    if (a==="ajustar") { ex.rm = r.nova; ex.ultimas = null; }
+    largar(ex.id); salvar(); tela = {v:"inicio"};
+  }
+  render();
+  if (["treino","novo","descobrir","inicio","criar","salvar-max","editar-equip","salvar-equip","academia","salvar-academia"].includes(a)) window.scrollTo(0,0);
+});
+render();
+</script>
+</body>
+</html>
