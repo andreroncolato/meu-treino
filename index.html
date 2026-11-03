@@ -89,6 +89,7 @@ h1{font-size:34px} h2{font-size:24px}
 .opc .disco{width:34px;height:34px;box-shadow:inset 0 0 0 9px rgba(0,0,0,.28)}
 .opc b{display:block;font-size:17px}
 .opc span{color:var(--mut);font-size:14px}
+.opc .faixa{display:block;margin-top:3px;color:var(--c);font-weight:700;font-size:13px}
 .seg{display:grid;grid-template-columns:repeat(3,1fr);}
 .seg.seg2{grid-template-columns:repeat(2,1fr)}
 .seg.seg4{grid-template-columns:repeat(4,1fr)}
@@ -487,9 +488,11 @@ function vAcademia(){
     <div class="campo"><span class="rot">Halteres</span>${gradeHalteres(d)}<p class="dica">Peso de cada halter, em kg. Marque todos que existem na sua academia.</p></div>
     <button class="btn btn-acao" data-a="salvar-academia">${primeira ? "Salvar e começar" : "Salvar academia"}</button>`;
 }
+// faixa de intensidade do objetivo, da série mais leve à última (ex.: 65% - 95% RM)
+const faixaRM = o => { const p = o.series.map(x => Math.round(x[1]*100)); return `${Math.min(...p)}% - ${Math.max(...p)}% RM`; };
 function vNovo(){
   const d = tela.d, editar = !!tela.editar;
-  const opc = Object.entries(OBJ).map(([k,o]) => `<button class="opc" style="--c:${o.cor}" aria-pressed="${d.obj===k}" data-a="set-obj" data-k="${k}"><i class="disco" style="--c:${o.cor}"></i><div><b>${o.nome}</b><span>${o.desc}</span></div></button>`).join("");
+  const opc = Object.entries(OBJ).map(([k,o]) => `<button class="opc" style="--c:${o.cor}" aria-pressed="${d.obj===k}" data-a="set-obj" data-k="${k}"><i class="disco" style="--c:${o.cor}"></i><div><b>${o.nome}</b><span>${o.desc}</span><small class="faixa num">${faixaRM(o)}</small></div></button>`).join("");
   const eq = [["barra","Barra"],["halteres","Halteres"]].map(([k,n]) => `<button aria-pressed="${d.equip===k}" data-a="set-equip" data-k="${k}">${n}</button>`).join("");
   if (!barrasDaAcademia().includes(d.barra)) d.barra = Math.max(...barrasDaAcademia());
   const pb = barrasDaAcademia().map(n => `<button aria-pressed="${d.barra===n}" data-a="set-barra" data-k="${n}">${n} kg</button>`).join("");
