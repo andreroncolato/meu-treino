@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Testes das cargas</title>
+<style>body{font:16px system-ui,sans-serif;background:#1D1E22;color:#fff;padding:20px}.ok{color:#3FAE5C}.erro{color:#F58AA0}iframe{display:none}</style>
+</head>
+<body>
+<h1>Testes das cargas</h1>
+<ul id="saida"></ul>
+<!-- carrega o app num quadro escondido e testa as contas dele; ?arquivo= escolhe outro html -->
+<iframe id="app"></iframe>
+<script>
+const arquivo = new URLSearchParams(location.search).get("arquivo") || "index.html";
+const quadro = document.getElementById("app");
+quadro.onload = () => {
+  const w = quadro.contentWindow, js = c => w.eval(c), saida = document.getElementById("saida");
+  const casos = [];
+  const testa = (nome, obtido, esperado) => {
+    const ok = JSON.stringify(obtido) === JSON.stringify(esperado);
+    casos.push(ok);
+    saida.insertAdjacentHTML("beforeend", `<li class="${ok ? "ok" : "erro"}">${ok ? "✓" : "✗"} ${nome}: ${JSON.stringify(obtido)}${ok ? "" : ` (esperado ${JSON.stringify(esperado)})`}</li>`);
+  };
+  // academia de teste só na memória do quadro; nada é salvo
+  js(`var _antes = S.academia`);
+  const academia = (anilhas, barras = [20]) => js(`S.academia = {barras:${JSON.stringify(barras)}, anilhas:${JSON.stringify(anilhas)}, halteres:[2,4,6,8,10]}`);
+  const comum = [1,2,3,4,5,10,15,20,25];
+
+  academia(comum);
+  testa("Força 100 kg, ferro comum", js(`pesosDoTreino({equip:"barra",barra:20,obj:"forca",rm:100}, 100, 20)`), [64,74,82,90,94]);
+  academia([10]);
+  testa("Força 40 kg só com anilhas de 10: nenhuma série mais leve depois de uma pesada", js(`pesosDoTreino({equip:"barra",barra:20,obj:"forca",rm:40}, 40, 20)`), [20,20,20,20,20]);
+  academia([25]);
+  testa("Só anilhas de 25: última série de força com 100 kg", js(`carga({equip:"barra",barra:20,obj:"forca"}, 100, .95, 20)`), 70);
+  testa("Só anilhas de 25: carga máxima não sobe com 5 reps", js(`novaMaxima({equip:"barra",barra:20,obj:"forca",rm:100}, 5, 20) <= 100`), true);
+  academia(comum, [10, 15]);
+  testa("Barra de 20 saiu da academia: usa a de 15", js(`barraBase({barra:20})`), 15);
+  academia(comum);
+  testa("Resistência 60 kg, 16 reps (Mayhew)", js(`novaMaxima({equip:"barra",barra:20,obj:"resist",rm:60}, 16, 20)`), 63);
+  testa("Melhor série 30 kg × 10 (Brzycki)", js(`rmDaSerie(30, 10)`), 40);
+  testa("Melhor série 20 kg × 20 sobe mais que × 12", js(`rmDaSerie(20, 20) > rmDaSerie(20, 12)`), true);
+  testa("Data do histórico no fuso local", js(`new Date(2026, 10, 3, 22, 0).toLocaleDateString("sv")`), "2026-11-03");
+  js(`S.academia = _antes`);
+
+  const falhas = casos.filter(c => !c).length;
+  document.title = falhas ? `${falhas} falhou` : "Tudo certo";
+  saida.insertAdjacentHTML("afterend", `<p class="${falhas ? "erro" : "ok"}"><b>${falhas ? `${falhas} de ${casos.length} falharam` : `Os ${casos.length} testes passaram`}</b></p>`);
+};
+quadro.src = arquivo;
+</script>
+</body>
+</html>

@@ -315,6 +315,12 @@ function barraBase(ex){
   return lista.reduce((m, b) => Math.abs(b - ex.barra) < Math.abs(m - ex.barra) ? b : m, lista[0]);
 }
 const carga = (ex, rm, pct, barra) => montar(ex, rm * pct, barra, pct >= 0.85).kg;
+// pesos das 5 séries; com anilhas grossas o arredondamento pode cruzar, então nenhuma série passa da seguinte
+function pesosDoTreino(ex, rm, barra){
+  const p = OBJ[ex.obj].series.map(s => carga(ex, rm, s[1], barra));
+  for (let i = p.length - 2; i >= 0; i--) p[i] = Math.min(p[i], p[i+1]);
+  return p;
+}
 // uma barra só para o treino inteiro: se a primeira série for mais leve que a barra do exercício,
 // usa desde o começo a barra mais pesada da academia que ainda caiba nela (as outras séries só ganham anilhas)
 function barraDoTreino(ex, rm){
@@ -327,6 +333,7 @@ function barraDoTreino(ex, rm){
 
 const brzycki = (peso, reps) => peso / (1.0278 - 0.0278 * Math.min(reps, 12));
 const mayhewPct = r => 52.2 + 41.9 * Math.exp(-0.055 * r);
+const rmDaSerie = (peso, reps) => Math.round(reps <= 12 ? brzycki(peso, reps) : brzycki(peso, 12) * mayhewPct(12) / mayhewPct(reps));
 // nova carga máxima a partir do peso que o aluno realmente levantou na última série
 function novaMaxima(ex, reps, barra, rm = ex.rm){
   const o = OBJ[ex.obj], pct = o.series[4][1], feito = carga(ex, rm, pct, barra);
@@ -346,7 +353,8 @@ const hoje = () => new Date().toDateString();
 S.sessoes = S.sessoes || {}; delete S.sessao;
 for (const k in S.sessoes) if (S.sessoes[k].dia !== hoje() || !S.ex.some(e => e.id === +k)) delete S.sessoes[k];
 if (S.ultimaSessao && S.sessoes[S.ultimaSessao]) { sessao = {...S.sessoes[S.ultimaSessao]}; tela = {v:"treino", id:sessao.id}; }
-const andamento = id => S.sessoes[id] && !S.sessoes[id].res ? S.sessoes[id] : null;
+// shortcut: resultado não concluído some na virada do dia (limpeza acima); concluir sozinho se isso incomodar
+const andamento = id => S.sessoes[id] || null;
 const largar = id => { delete S.sessoes[id]; if (sessao && sessao.id === id) sessao = null; };
 const app = document.getElementById("app");
 const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
@@ -455,7 +463,7 @@ function vInicio(){
       <span class="ex-nome">${esc(ex.nome)}</span>
       <span class="ex-carga num"><b>${ex.rm}</b><small>${ex.equip==="halteres" ? "kg máx. por halter" : "kg máximo"}</small></span>
       <span class="chip"><i class="disco" style="--c:${o.cor}"></i>${o.nome}</span>
-      <span class="ex-pe"><span class="nivel">${andamento(ex.id) ? `<span class="andamento">Continuar da série ${Math.min(andamento(ex.id).feitas + 1, 5)}</span>` : `Nível ${ex.nivel}`}</span>${pips(ex)}</span></button>`; }).join("");
+      <span class="ex-pe"><span class="nivel">${andamento(ex.id) ? `<span class="andamento">${andamento(ex.id).res ? "Ver resultado do treino" : `Continuar da série ${Math.min(andamento(ex.id).feitas + 1, 5)}`}</span>` : `Nível ${ex.nivel}`}</span>${pips(ex)}</span></button>`; }).join("");
   return `<header class="saudacao"><h1>${S.nome ? `Bora treinar, ${esc(S.nome)}` : "Bora treinar!"}</h1><p class="sub">Escolha o exercício de hoje. Cada barrinha cheia te deixa mais perto de subir de nível.</p></header>
     <div class="lista">${cards || `<div class="vazio">Você ainda não tem exercícios. Toque em <b>Adicionar exercício</b> e coloque o primeiro da sua ficha.</div>`}</div>
     <button class="btn btn-sec" data-a="novo">Adicionar exercício</button>
@@ -478,6 +486,7 @@ function gradeHalteres(d){
 // a academia é configurada uma vez e vale para todos os exercícios
 function vAcademia(){
   const d = tela.d, primeira = !S.academia;
+  const vazia = !d.barras.length ? "uma barra" : !d.anilhas.length ? "uma anilha" : !d.halteres.length ? "um halter" : "";
   return `${primeira ? "" : topo()}<h1 style="margin-bottom:8px">${primeira ? "Monte sua academia" : "Sua academia"}</h1>
     <p class="sub" style="margin-bottom:24px">${primeira ? "Antes de começar, marque o que existe na sua academia. Você faz isso uma vez só e pode mudar quando quiser." : "Os pesos de todos os exercícios usam só o que está marcado aqui."}</p>
     <div class="campo"><label for="aluno">Seu nome</label><input id="aluno" class="txt" value="${esc(d.aluno || "")}" placeholder="Como você quer ser chamado" autocomplete="given-name" enterkeyhint="done"></div>
@@ -486,7 +495,8 @@ function vAcademia(){
     <div class="campo"><span class="rot">Anilhas</span>${gradeAnilhas(d)}<p class="dica">Marque todas que você encontra na sua academia. Os pesos do treino vão usar só essas.</p>
       ${d.anilhas.length && !d.anilhas.some(k => k <= 2.5) ? `<div class="aviso-barra">Sem anilhas de até 2,5 kg, o peso sobe de pouco em pouco e algumas séries podem ficar com o mesmo peso.</div>` : ""}</div>
     <div class="campo"><span class="rot">Halteres</span>${gradeHalteres(d)}<p class="dica">Peso de cada halter, em kg. Marque todos que existem na sua academia.</p></div>
-    <button class="btn btn-acao" data-a="salvar-academia">${primeira ? "Salvar e começar" : "Salvar academia"}</button>`;
+    ${vazia ? `<div class="aviso-barra forte">Marque pelo menos ${vazia} para salvar.</div><div style="height:12px"></div>` : ""}
+    <button class="btn btn-acao" data-a="salvar-academia" ${vazia ? "disabled" : ""}>${primeira ? "Salvar e começar" : "Salvar academia"}</button>`;
 }
 // faixa de intensidade do objetivo, da série mais leve à última (ex.: 65% - 95% RM)
 const faixaRM = o => { const p = o.series.map(x => Math.round(x[1]*100)); return `${Math.min(...p)}% - ${Math.max(...p)}% RM`; };
@@ -505,16 +515,17 @@ function vNovo(){
     <button class="btn btn-acao" data-a="${editar ? "salvar-equip" : "criar"}">${editar ? "Salvar" : "Continuar"}</button>`;
 }
 
+const ROTULO = {peso:"Peso em kg", reps:"Repetições feitas", sobra:"Repetições de reserva", feitas:"Repetições feitas na última série"};
 function stepper(campo, valor, unidade, dica){
   // dá para tocar no número e digitar, além de usar o − e o +
   const modo = campo === "peso" ? "decimal" : "numeric";
   return `<div class="stepper"><button data-a="menos" data-k="${campo}" aria-label="Diminuir">−</button>
-    <label><input class="num" data-campo="${campo}" type="text" inputmode="${modo}" enterkeyhint="done" autocomplete="off" value="${fmt(valor)}" aria-label="${campo}">${unidade?`<small>${unidade}</small>`:""}</label>
+    <label><input class="num" data-campo="${campo}" type="text" inputmode="${modo}" enterkeyhint="done" autocomplete="off" value="${fmt(valor)}" aria-label="${ROTULO[campo]}">${unidade?`<small>${unidade}</small>`:""}</label>
     <button data-a="mais" data-k="${campo}" aria-label="Aumentar">+</button></div>${dica?`<p class="dica">${dica}</p>`:""}`;
 }
 function vDescobrir(){
   const d = tela.d, ex = S.ex.find(e=>e.id===tela.id);
-  const rm = Math.round(d.peso / (1.0278 - 0.0278 * Math.min(d.reps + d.sobra, 12)));
+  const rm = rmDaSerie(d.peso, d.reps + d.sobra);
   const abaixo = ex.equip === "barra" && d.peso < barraBase(ex);
   return `${topo()}<h1 style="margin-bottom:8px">Qual foi sua melhor série de ${esc(ex.nome.toLowerCase())}?</h1>
     <p class="sub" style="margin-bottom:24px">Me diga o peso e as repetições da melhor série que você já fez nesse exercício. A planilha calcula sua carga máxima a partir dela.</p>
@@ -532,10 +543,10 @@ function vTreino(){
   if (!sessao || sessao.id !== ex.id) sessao = andamento(ex.id) ? {...andamento(ex.id)} : {id:ex.id, rm:ex.rm, barra:barraDoTreino(ex, ex.rm), feitas:0, reps:o.esperado, fim:null, res:null};
   // a barra do treino só muda se ela saiu da academia
   if (ex.equip === "barra" && (sessao.barra == null || !barrasDaAcademia().includes(sessao.barra))) sessao.barra = barraDoTreino(ex, sessao.rm);
-  const pesos = o.series.map(s => carga(ex, sessao.rm, s[1], sessao.barra));
+  const pesos = pesosDoTreino(ex, sessao.rm, sessao.barra);
   const repetidos = pesos.some((k, i) => i > 0 && k === pesos[i-1]);
   const linhas = o.series.map((s,i) => {
-    const kg = carga(ex, sessao.rm, s[1], sessao.barra);
+    const kg = pesos[i];
     if (i < sessao.feitas) return `<div class="serie feita" style="--c:${o.cor}"><div class="no">${icoOk}</div><div class="mini"><span>${s[0]}</span><span class="num">${fmt(kg)} kg × ${s[2]||sessao.reps}</span></div></div>`;
     if (i > sessao.feitas || sessao.res) return `<div class="serie"><div class="no">${i+1}</div><div class="mini"><span>${s[0]}</span><span class="num">${fmt(kg)} kg</span></div></div>`;
     return `<div class="serie atual"><div class="no">${i+1}</div>${cartaoSerie(ex, o, s, i, kg)}</div>`;
@@ -604,8 +615,9 @@ function vResultado(ex, o){
 function render(){
   clearInterval(timer);
   // só guarda depois da primeira série feita; abrir e voltar não deixa "andamento"
-  if (sessao) { if (sessao.res || !sessao.feitas) delete S.sessoes[sessao.id]; else S.sessoes[sessao.id] = {...sessao, dia: hoje()}; }
-  S.ultimaSessao = sessao && !sessao.res && sessao.feitas && tela.v === "treino" ? sessao.id : null; salvar();
+  const pendente = sessao && sessao.feitas && !(sessao.res && sessao.res.subiu);
+  if (sessao) { if (pendente) S.sessoes[sessao.id] = {...sessao, dia: hoje()}; else delete S.sessoes[sessao.id]; }
+  S.ultimaSessao = pendente && tela.v === "treino" ? sessao.id : null; salvar();
   if (!S.academia && tela.v !== "academia") tela = {v:"academia", d:{aluno:S.nome || "", barras:[...BARRAS], anilhas:[...PRESET_ANILHAS.comum.kg], halteres:[...PRESET_HALTERES.misto.kg]}};
   app.innerHTML = tela.v==="academia" ? vAcademia() : tela.v==="inicio" ? vInicio() : tela.v==="novo" ? vNovo() : tela.v==="descobrir" ? vDescobrir() : vTreino();
   if (tela.v==="treino" && sessao && sessao.fim) timer = setInterval(tique, 250);
@@ -627,7 +639,7 @@ function contar(de, ate){
 }
 // peso que aparece de saída na melhor série: 75% da carga atual (ou 40 kg), nunca menos que a barra
 const pesoInicial = ex => { const k = ex.rm ? Math.round(ex.rm * 0.75 / 2) * 2 : (ex.equip === "halteres" ? 10 : 40); return ex.equip === "barra" ? Math.max(k, barraBase(ex)) : k; };
-const LIM = {peso:[1,400,2], reps:[1,12,1], sobra:[0,5,1], feitas:[0,40,1]};
+const LIM = {peso:[1,400,2], reps:[1,30,1], sobra:[0,5,1], feitas:[0,40,1]};
 // números digitados: atualizam a conta na hora e são ajustados aos limites quando o aluno sai do campo
 const alvoCampo = k => k === "feitas" ? [sessao, "reps"] : [tela.d, k];
 const lerNumero = t => { const v = parseFloat(String(t).replace(",", ".")); return isFinite(v) ? v : null; };
@@ -638,7 +650,7 @@ app.addEventListener("input", ev => {
   const [obj, campo] = alvoCampo(el.dataset.campo), [mn, mx] = LIM[el.dataset.campo];
   if (v < mn || v > mx) return;
   obj[campo] = el.dataset.campo === "peso" ? v : Math.round(v);
-  if (tela.v === "descobrir") { const d = tela.d, rm = Math.round(d.peso / (1.0278 - 0.0278 * Math.min(d.reps + d.sobra, 12)));
+  if (tela.v === "descobrir") { const d = tela.d, rm = rmDaSerie(d.peso, d.reps + d.sobra);
     const out = document.getElementById("rm-valor"), btn = document.getElementById("btn-rm");
     if (out) out.innerHTML = `${rm}<small> kg</small>`; if (btn) btn.dataset.rm = rm;
     const ex = S.ex.find(e => e.id === tela.id), abaixo = ex.equip === "barra" && d.peso < barraBase(ex), av = document.getElementById("aviso-peso");
@@ -654,10 +666,10 @@ app.addEventListener("focusin", ev => { const el = ev.target.closest("input[data
 app.addEventListener("click", ev => {
   const b = ev.target.closest("[data-a]"); if (!b) return;
   const a = b.dataset.a;
-  if (a==="inicio") { tela = {v:"inicio"}; if (sessao && sessao.res) sessao = null; }
+  if (a==="inicio") { tela = {v:"inicio"}; if (sessao && sessao.res && sessao.res.subiu) sessao = null; }
   else if (a==="novo") tela = {v:"novo", d:{nome:"", obj:"hiper", equip:"barra", barra:20}};
   else if (a==="academia") { const n = document.getElementById("nome"); if (n && tela.d) tela.d.nome = n.value; const volta = tela.v === "novo" ? tela : null; tela = {v:"academia", volta, d:{aluno:S.nome || "", barras:barrasDaAcademia(), anilhas:[...S.academia.anilhas], halteres:[...S.academia.halteres]}}; }
-  else if (a==="salvar-academia") { S.nome = (tela.d.aluno || "").trim(); S.academia = {barras:tela.d.barras.length ? tela.d.barras : [...BARRAS], anilhas:tela.d.anilhas, halteres:tela.d.halteres}; salvar(); tela = tela.volta || {v:"inicio"}; }
+  else if (a==="salvar-academia") { S.nome = (tela.d.aluno || "").trim(); S.academia = {barras:tela.d.barras, anilhas:tela.d.anilhas, halteres:tela.d.halteres}; salvar(); tela = tela.volta || {v:"inicio"}; }
   else if (a==="tog-barra") { const v = +b.dataset.k; tela.d.barras = tela.d.barras.includes(v) ? tela.d.barras.filter(x => x !== v) : [...tela.d.barras, v]; }
   else if (["tog-anilha","tog-halter","preset-anilhas","preset-halteres"].includes(a)) { const n = document.getElementById("nome"); if (n) tela.d.nome = n.value;
     const k = a.endsWith("anilha") || a==="preset-anilhas" ? "anilhas" : "halteres";
@@ -686,7 +698,7 @@ app.addEventListener("click", ev => {
     sessao.res = {reps:sessao.reps, nova:novaMaxima(ex, sessao.reps, sessao.barra, sessao.rm), feito:carga(ex, sessao.rm, pct, sessao.barra)}; sessao.feitas = 5; }
   else if (a==="concluir" || a==="atualizar" || a==="ajustar") {
     const ex = S.ex.find(e=>e.id===tela.id), o = OBJ[ex.obj], r = sessao.res, antes = ex.rm;
-    ex.ultimas = r.reps; ex.hist.push({data:new Date().toISOString().slice(0,10), reps:r.reps, rm:antes});
+    ex.ultimas = r.reps; ex.hist.push({data:new Date().toLocaleDateString("sv"), reps:r.reps, rm:antes});
     ex.abaixo = r.reps < o.minimo && a === "concluir" ? (ex.abaixo || 0) + 1 : 0;
     if (a==="atualizar") { ex.rm = Math.max(r.nova, ex.rm); ex.nivel++; ex.ultimas = null; r.subiu = true; salvar(); render(); contar(antes, ex.rm); return; }
     if (a==="ajustar") { ex.rm = r.nova; ex.ultimas = null; }
