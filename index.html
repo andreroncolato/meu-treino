@@ -5,7 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
 <meta name="theme-color" content="#2B2C30">
 <meta name="color-scheme" content="dark">
-<title>Meu Treino</title>
+<title>Prescrição de carga</title>
+<meta name="apple-mobile-web-app-title" content="Prescrição de carga">
+<meta name="application-name" content="Prescrição de carga">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -335,11 +337,7 @@ function novaMaxima(ex, reps, barra, rm = ex.rm){
 const CHAVE = "meu-treino-v5";
 let S;
 try { S = JSON.parse(localStorage.getItem(CHAVE)); } catch(e) {}
-if (!S) S = { nome:"André", ex:[
-  {id:1, nome:"Levantamento terra", obj:"hiper", equip:"barra", barra:20, rm:173, nivel:2, ultimas:9, hist:[]},
-  {id:2, nome:"Agachamento livre", obj:"forca", equip:"barra", barra:20, rm:140, nivel:1, ultimas:3, hist:[]},
-  {id:3, nome:"Remada com halteres", obj:"resist", equip:"halteres", rm:30, nivel:1, ultimas:null, hist:[]},
-]};
+if (!S) S = { nome:"", ex:[] };
 const salvar = () => { try { localStorage.setItem(CHAVE, JSON.stringify(S)); } catch(e) {} };
 let tela = {v:"inicio"}, sessao = null, timer = null;
 // treino em andamento: cada exercício guarda o seu, só até o fim do dia; ao reabrir, volta no último que estava aberto
@@ -457,8 +455,8 @@ function vInicio(){
       <span class="ex-carga num"><b>${ex.rm}</b><small>${ex.equip==="halteres" ? "kg máx. por halter" : "kg máximo"}</small></span>
       <span class="chip"><i class="disco" style="--c:${o.cor}"></i>${o.nome}</span>
       <span class="ex-pe"><span class="nivel">${andamento(ex.id) ? `<span class="andamento">Continuar da série ${Math.min(andamento(ex.id).feitas + 1, 5)}</span>` : `Nível ${ex.nivel}`}</span>${pips(ex)}</span></button>`; }).join("");
-  return `<header class="saudacao"><h1>Bora treinar, ${esc(S.nome)}</h1><p class="sub">Escolha o exercício de hoje. Cada barrinha cheia te deixa mais perto de subir de nível.</p></header>
-    <div class="lista">${cards || `<div class="vazio">Você ainda não tem exercícios. Adicione o primeiro para começar.</div>`}</div>
+  return `<header class="saudacao"><h1>${S.nome ? `Bora treinar, ${esc(S.nome)}` : "Bora treinar!"}</h1><p class="sub">Escolha o exercício de hoje. Cada barrinha cheia te deixa mais perto de subir de nível.</p></header>
+    <div class="lista">${cards || `<div class="vazio">Você ainda não tem exercícios. Toque em <b>Adicionar exercício</b> e coloque o primeiro da sua ficha.</div>`}</div>
     <button class="btn btn-sec" data-a="novo">Adicionar exercício</button>
     <button class="academia-card" data-a="academia"><span class="academia-ico">${discoIcone(ANILHAS[1])}</span>
       <span><b>Sua academia</b><small>${barrasDaAcademia().length} barras, ${S.academia.anilhas.length} tipos de anilha e ${S.academia.halteres.length} halteres</small></span><span class="editar">Editar</span></button>`;
@@ -481,6 +479,7 @@ function vAcademia(){
   const d = tela.d, primeira = !S.academia;
   return `${primeira ? "" : topo()}<h1 style="margin-bottom:8px">${primeira ? "Monte sua academia" : "Sua academia"}</h1>
     <p class="sub" style="margin-bottom:24px">${primeira ? "Antes de começar, marque o que existe na sua academia. Você faz isso uma vez só e pode mudar quando quiser." : "Os pesos de todos os exercícios usam só o que está marcado aqui."}</p>
+    <div class="campo"><label for="aluno">Seu nome</label><input id="aluno" class="txt" value="${esc(d.aluno || "")}" placeholder="Como você quer ser chamado" autocomplete="given-name" enterkeyhint="done"></div>
     <div class="campo"><span class="rot">Barras</span><div class="marcas">${BARRAS.map(b => `<button class="marca marca-b" aria-pressed="${d.barras.includes(b)}" data-a="tog-barra" data-k="${b}"><svg viewBox="0 0 46 12" aria-hidden="true"><rect x="0" y="4" width="46" height="4" rx="2" fill="#C3C6CE"/><rect x="10" y="1" width="3" height="10" rx="1" fill="#E4E6EA"/><rect x="33" y="1" width="3" height="10" rx="1" fill="#E4E6EA"/></svg><b class="num">${b} kg</b><i class="ok">${icoOk}</i></button>`).join("")}</div>
       <p class="dica">Quando o peso de uma série ficar abaixo da barra do exercício, a página sugere uma barra mais leve entre as marcadas.</p></div>
     <div class="campo"><span class="rot">Anilhas</span>${gradeAnilhas(d)}<p class="dica">Marque todas que você encontra na sua academia. Os pesos do treino vão usar só essas.</p>
@@ -604,7 +603,7 @@ function render(){
   // só guarda depois da primeira série feita; abrir e voltar não deixa "andamento"
   if (sessao) { if (sessao.res || !sessao.feitas) delete S.sessoes[sessao.id]; else S.sessoes[sessao.id] = {...sessao, dia: hoje()}; }
   S.ultimaSessao = sessao && !sessao.res && sessao.feitas && tela.v === "treino" ? sessao.id : null; salvar();
-  if (!S.academia && tela.v !== "academia") tela = {v:"academia", d:{barras:[...BARRAS], anilhas:[...PRESET_ANILHAS.comum.kg], halteres:[...PRESET_HALTERES.misto.kg]}};
+  if (!S.academia && tela.v !== "academia") tela = {v:"academia", d:{aluno:S.nome || "", barras:[...BARRAS], anilhas:[...PRESET_ANILHAS.comum.kg], halteres:[...PRESET_HALTERES.misto.kg]}};
   app.innerHTML = tela.v==="academia" ? vAcademia() : tela.v==="inicio" ? vInicio() : tela.v==="novo" ? vNovo() : tela.v==="descobrir" ? vDescobrir() : vTreino();
   if (tela.v==="treino" && sessao && sessao.fim) timer = setInterval(tique, 250);
 }
@@ -629,6 +628,7 @@ const LIM = {peso:[1,400,2], reps:[1,12,1], sobra:[0,5,1], feitas:[0,40,1]};
 // números digitados: atualizam a conta na hora e são ajustados aos limites quando o aluno sai do campo
 const alvoCampo = k => k === "feitas" ? [sessao, "reps"] : [tela.d, k];
 const lerNumero = t => { const v = parseFloat(String(t).replace(",", ".")); return isFinite(v) ? v : null; };
+app.addEventListener("input", ev => { if (ev.target.id === "aluno" && tela.d) tela.d.aluno = ev.target.value; });
 app.addEventListener("input", ev => {
   const el = ev.target.closest("input[data-campo]"); if (!el) return;
   const v = lerNumero(el.value); if (v == null) return;
@@ -653,8 +653,8 @@ app.addEventListener("click", ev => {
   const a = b.dataset.a;
   if (a==="inicio") { tela = {v:"inicio"}; if (sessao && sessao.res) sessao = null; }
   else if (a==="novo") tela = {v:"novo", d:{nome:"", obj:"hiper", equip:"barra", barra:20}};
-  else if (a==="academia") { const n = document.getElementById("nome"); if (n && tela.d) tela.d.nome = n.value; const volta = tela.v === "novo" ? tela : null; tela = {v:"academia", volta, d:{barras:barrasDaAcademia(), anilhas:[...S.academia.anilhas], halteres:[...S.academia.halteres]}}; }
-  else if (a==="salvar-academia") { S.academia = {barras:tela.d.barras.length ? tela.d.barras : [...BARRAS], anilhas:tela.d.anilhas, halteres:tela.d.halteres}; salvar(); tela = tela.volta || {v:"inicio"}; }
+  else if (a==="academia") { const n = document.getElementById("nome"); if (n && tela.d) tela.d.nome = n.value; const volta = tela.v === "novo" ? tela : null; tela = {v:"academia", volta, d:{aluno:S.nome || "", barras:barrasDaAcademia(), anilhas:[...S.academia.anilhas], halteres:[...S.academia.halteres]}}; }
+  else if (a==="salvar-academia") { S.nome = (tela.d.aluno || "").trim(); S.academia = {barras:tela.d.barras.length ? tela.d.barras : [...BARRAS], anilhas:tela.d.anilhas, halteres:tela.d.halteres}; salvar(); tela = tela.volta || {v:"inicio"}; }
   else if (a==="tog-barra") { const v = +b.dataset.k; tela.d.barras = tela.d.barras.includes(v) ? tela.d.barras.filter(x => x !== v) : [...tela.d.barras, v]; }
   else if (["tog-anilha","tog-halter","preset-anilhas","preset-halteres"].includes(a)) { const n = document.getElementById("nome"); if (n) tela.d.nome = n.value;
     const k = a.endsWith("anilha") || a==="preset-anilhas" ? "anilhas" : "halteres";
